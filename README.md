@@ -12,3 +12,7 @@ one can probably find it in the Matlab source code.
 
 The author appreciates feedback and interaction/collaboration. 
 Please don't hesitate to e-mail pkrysl@ucsd.edu.
+
+Get JFinEALE
+============
+Pkg.clone("https://github.com/PetrKryslUCSD/JFinEALE.jl")
