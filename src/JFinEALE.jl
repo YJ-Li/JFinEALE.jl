@@ -1,3 +1,4 @@
+# Generate the modules.
 include("JFFoundationModule.jl")
 include("PhysicalUnitModule.jl")
 include("RotationUtilModule.jl")
@@ -29,10 +30,10 @@ include("AcousticsAlgorithmModule.jl")
 """
 
 JFinEALE (C) 2014-2015, Petr Krysl
-  Try running examples. Example scripts use the modules loaded by JFinEALE.jl.
-  ... ready
+  
 """
 
+# This module is defined simply in order to make the package manager happy.
 module JFinEALE
 end
 

@@ -1,6 +1,7 @@
 module FESetModule
 
 import Base.count
+import Base.cat
 
 using JFFoundationModule
 using RotationUtilModule
