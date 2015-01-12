@@ -20,6 +20,9 @@ $RECYCLE.BIN/
 # Emacs backups
 *~
 
+# VTK scratch files
+*.vtk
+
 # =========================
 # Operating System Files
 # =========================
