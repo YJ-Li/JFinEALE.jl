@@ -1,6 +1,6 @@
 module AssemblyModule
 
-using JFFoundationModule
+using JFinEALE.JFFoundationModule
 
 const  inv_dofnum=0;            # invalid degree of freedom number -- no equation
 

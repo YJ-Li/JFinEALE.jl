@@ -3,8 +3,8 @@ module FESetModule
 import Base.count
 import Base.cat
 
-using JFFoundationModule
-using RotationUtilModule
+using JFinEALE.JFFoundationModule
+using JFinEALE.RotationUtilModule
 
 abstract FESet
 abstract FESet0Manifold <: FESet

@@ -1,11 +1,11 @@
 module MeshHexahedronModule
 
-using JFFoundationModule
-using FESetModule
-using FENodeSetModule
-using MeshUtilModule
-using MeshModificationModule
-using MeshSelectionModule
+using JFinEALE.JFFoundationModule
+using JFinEALE.FESetModule
+using JFinEALE.FENodeSetModule
+using JFinEALE.MeshUtilModule
+using JFinEALE.MeshModificationModule
+using JFinEALE.MeshSelectionModule
 
 
 function H8block(Length::JFFlt,Width::JFFlt,Height::JFFlt,nL::JFInt,nW::JFInt,nH::JFInt)

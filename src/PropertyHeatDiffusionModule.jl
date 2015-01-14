@@ -1,7 +1,7 @@
 module PropertyHeatDiffusionModule
 
 
-using JFFoundationModule
+using JFinEALE.JFFoundationModule
 
 # Type for heat diffusion material property.
 # Fields:

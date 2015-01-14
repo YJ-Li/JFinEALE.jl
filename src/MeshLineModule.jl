@@ -1,9 +1,9 @@
 module MeshLineModule
 
-using JFFoundationModule
-using FESetModule
-using FENodeSetModule
-using MeshModificationModule
+using JFinEALE.JFFoundationModule
+using JFinEALE.FESetModule
+using JFinEALE.FENodeSetModule
+using JFinEALE.MeshModificationModule
 
 
 function L2block(Length::JFFlt,nL::JFInt)

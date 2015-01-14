@@ -1,8 +1,8 @@
 module MaterialAcousticFluidModule
 
 
-using JFFoundationModule
-using PropertyAcousticFluidModule
+using JFinEALE.JFFoundationModule
+using JFinEALE.PropertyAcousticFluidModule
 
 # Class for acoustic fluid models of materials.
 type MaterialAcousticFluid

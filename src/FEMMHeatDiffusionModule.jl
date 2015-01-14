@@ -1,12 +1,12 @@
 module FEMMHeatDiffusionModule
 
-using JFFoundationModule
-using FESetModule
-using FEMMBaseModule
-using NodalFieldModule
-using ForceIntensityModule
-using MaterialHeatDiffusionModule
-using AssemblyModule
+using JFinEALE.JFFoundationModule
+using JFinEALE.FESetModule
+using JFinEALE.FEMMBaseModule
+using JFinEALE.NodalFieldModule
+using JFinEALE.ForceIntensityModule
+using JFinEALE.MaterialHeatDiffusionModule
+using JFinEALE.AssemblyModule
 
 # Class for heat diffusion finite element modeling machine.
 type FEMMHeatDiffusion{S<:FESet}

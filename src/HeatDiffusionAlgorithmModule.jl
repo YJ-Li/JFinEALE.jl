@@ -1,13 +1,13 @@
 module HeatDiffusionAlgorithmModule
 
-using JFFoundationModule
-using FESetModule
-using NodalFieldModule
-using ForceIntensityModule
-using PropertyHeatDiffusionModule
-using MaterialHeatDiffusionModule
-using FEMMBaseModule
-using FEMMHeatDiffusionModule
+using JFinEALE.JFFoundationModule
+using JFinEALE.FESetModule
+using JFinEALE.NodalFieldModule
+using JFinEALE.ForceIntensityModule
+using JFinEALE.PropertyHeatDiffusionModule
+using JFinEALE.MaterialHeatDiffusionModule
+using JFinEALE.FEMMBaseModule
+using JFinEALE.FEMMHeatDiffusionModule
 
 function steadystate(modeldata::ModelDataDictionary)
 # Steady-state heat conduction solver.
@@ -252,6 +252,5 @@ function steadystate(modeldata::ModelDataDictionary)
     setindex!(modeldata, temp, "temp");
     return modeldata            # ... And return the updated model data
 end
-
 
 end

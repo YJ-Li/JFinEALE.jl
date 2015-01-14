@@ -1,6 +1,6 @@
 module PhysicalUnitModule
 
-using JFFoundationModule
+using JFinEALE.JFFoundationModule
 
 function physunitdict(;System_of_units=:SI,base_time_units=:SEC)
     # Create a struct with physical unit conversion factors.

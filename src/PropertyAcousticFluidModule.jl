@@ -1,7 +1,7 @@
 module PropertyAcousticFluidModule
 
 
-using JFFoundationModule
+using JFinEALE.JFFoundationModule
 
 # Type for acoustic fluid material property.
 # Fields:

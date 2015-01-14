@@ -1,14 +1,5 @@
-using FESetModule
-using FENodeSetModule
-using MeshTriangleModule
-using MeshSelectionModule
-using NodalFieldModule; NF=NodalFieldModule;
-using IntegRuleModule
-using PropertyHeatDiffusionModule
-using MaterialHeatDiffusionModule
-using FEMMBaseModule
-using FEMMHeatDiffusionModule
-using ForceIntensityModule
+using JFinEALE
+using JFinEALE.HeatDiffusionAlgorithmModule
 using Base.Test
 
 function Poisson1()
@@ -33,8 +24,8 @@ function Poisson1()
     #println("Mesh generation")
     fens,fes =T3block(A, A, N, N)
 
-    geom = NF.NodalField(name ="geom",data =fens.xyz)
-    Temp = NF.NodalField(name ="Temp",data =zeros(size(fens.xyz,1),1))
+    geom = NodalField(name ="geom",data =fens.xyz)
+    Temp = NodalField(name ="Temp",data =zeros(size(fens.xyz,1),1))
 
     #println("Searching nodes  for BC")
     l1 =fenodeselect(fens; box=[0. 0. 0. A], inflate = 1.0/N/100.0)
@@ -42,9 +33,9 @@ function Poisson1()
     l3 =fenodeselect(fens; box=[0. A 0. 0.], inflate = 1.0/N/100.0)
     l4 =fenodeselect(fens; box=[0. A A A], inflate = 1.0/N/100.0)
     List=[l1, l2, l3, l4];
-    NF.setebc!(Temp,List,trues(length(List)),List*0+1,tempf(geom.values[List,:])[:])
-    NF.applyebc!(Temp)
-    NF.numberdofs!(Temp)
+    setebc!(Temp,List,trues(length(List)),List*0+1,tempf(geom.values[List,:])[:])
+    applyebc!(Temp)
+    numberdofs!(Temp)
 
     t1 = time()
 
@@ -66,7 +57,7 @@ function Poisson1()
     K=cholfact(K)
     #println("Solution of the factorized system")
     U=  K\(F1+F2)
-    NF.scattersysvec!(Temp,U[:])
+    scattersysvec!(Temp,U[:])
 
     #println("Total time elapsed = $(time() - t0) [s]")
     #println("Solution time elapsed = $(time() - t1) [s]")
@@ -81,19 +72,7 @@ function Poisson1()
     true
 end
 Poisson1()
-
-using JFFoundationModule
-using FESetModule
-using MeshExportModule
-using MeshQuadrilateralModule
-using IntegRuleModule: GaussRule
-using MeshModificationModule
-using MeshSelectionModule
-using PropertyHeatDiffusionModule
-using MaterialHeatDiffusionModule
-using FEMMBaseModule
-using FEMMHeatDiffusionModule
-using HeatDiffusionAlgorithmModule
+ 
 function annulus_Q4_example_algo()
 
 
@@ -161,18 +140,7 @@ function annulus_Q4_example_algo()
     # MeshExportModule.vtkexportmesh ("annulusmod.vtk", fes.conn, [geom.values Temp.values], MeshExportModule.Q4; scalars=Temp.values, scalars_name ="Temperature")
 end
 annulus_Q4_example_algo()
-
-using FESetModule
-using FENodeSetModule
-using MeshQuadrilateralModule
-using MeshSelectionModule
-using NodalFieldModule
-using IntegRuleModule
-using PropertyHeatDiffusionModule
-using MaterialHeatDiffusionModule
-using FEMMBaseModule
-using FEMMHeatDiffusionModule
-using ForceIntensityModule
+  
 function Poisson_FE_Q4_1()
 
 
@@ -255,15 +223,7 @@ function Poisson_FE_Q4_1()
     true
 end
 Poisson_FE_Q4_1()
-
-using JFFoundationModule
-using MeshExportModule
-using IntegRuleModule
-using MeshSelectionModule
-using MeshTriangleModule
-using HeatDiffusionAlgorithmModule
-using FEMMBaseModule
-
+ 
 function Poisson_FE_example_algo()
 
 

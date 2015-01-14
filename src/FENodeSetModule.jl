@@ -1,7 +1,7 @@
 module FENodeSetModule
 
 
-using JFFoundationModule
+using JFinEALE.JFFoundationModule
 
 import Base.count
 

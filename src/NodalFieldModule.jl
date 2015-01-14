@@ -1,6 +1,6 @@
 module NodalFieldModule
 
-using JFFoundationModule
+using JFinEALE.JFFoundationModule
 
 type NodalField{T<:Number}
     name::String

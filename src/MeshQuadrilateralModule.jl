@@ -1,9 +1,9 @@
 module MeshQuadrilateralModule
 
-using JFFoundationModule
-using FESetModule
-using FENodeSetModule
-using MeshModificationModule
+using JFinEALE.JFFoundationModule
+using JFinEALE.FESetModule
+using JFinEALE.FENodeSetModule
+using JFinEALE.MeshModificationModule
 
 
 function Q4annulus(rin::JFFlt,rex::JFFlt,nr::JFInt,nc::JFInt,Angl::JFFlt)

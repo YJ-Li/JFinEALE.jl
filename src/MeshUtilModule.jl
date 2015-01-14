@@ -1,6 +1,6 @@
 module MeshUtilModule
 
-using JFFoundationModule
+using JFinEALE.JFFoundationModule
 
 type HyperFaceContainer
     o # numbers of the other nodes on the edge

@@ -1,7 +1,7 @@
 module IntegRuleModule
 
 
-using JFFoundationModule
+using JFinEALE.JFFoundationModule
 
 abstract IntegRule
 export IntegRule

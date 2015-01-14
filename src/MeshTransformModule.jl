@@ -1,9 +1,9 @@
 module MeshTransformModule
 
 
-using JFFoundationModule
-using FENodeSetModule
-using FESetModule
+using JFinEALE.JFFoundationModule
+using JFinEALE.FENodeSetModule
+using JFinEALE.FESetModule
 
 function mirrormesh{T<:FESet}(fens::FENodeSet, fes::T, Normal::JFFltVec, Point::JFFltVec; args...)
     # % Mirror a 2-D mesh in a plane given by its normal and one point. 

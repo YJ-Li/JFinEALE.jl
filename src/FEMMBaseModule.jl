@@ -1,11 +1,11 @@
 module FEMMBaseModule
 
-using JFFoundationModule
-using FESetModule
-using IntegRuleModule
-using NodalFieldModule
-using ForceIntensityModule
-using AssemblyModule
+using JFinEALE.JFFoundationModule
+using JFinEALE.FESetModule
+using JFinEALE.IntegRuleModule
+using JFinEALE.NodalFieldModule
+using JFinEALE.ForceIntensityModule
+using JFinEALE.AssemblyModule
 
 #     % Base class for all finite element models
 #     % from which more specialized (heat diffusion, elasticity,...) finite

@@ -1,9 +1,9 @@
 module MeshSelectionModule
 
-using JFFoundationModule
-using FENodeSetModule
-using FESetModule
-using RotationUtilModule
+using JFinEALE.JFFoundationModule
+using JFinEALE.FENodeSetModule
+using JFinEALE.FESetModule
+using JFinEALE.RotationUtilModule
 
 function connectedfes(fes::FESetModule.FESet, node_list::JFIntVec)
   # Extract the numbers of the finite elements connected to given nodes.

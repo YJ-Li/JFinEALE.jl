@@ -1,6 +1,6 @@
 module RotationUtilModule
 
-using JFFoundationModule
+using JFinEALE.JFFoundationModule
 
 # % Compute rotation matrix from a rotation vector or from the associated
 # % skew matrix.

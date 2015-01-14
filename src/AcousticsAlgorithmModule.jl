@@ -1,13 +1,14 @@
 module AcousticsAlgorithmModule
 
-using JFFoundationModule
-using FESetModule
-using NodalFieldModule
-using ForceIntensityModule
-using PropertyAcousticFluidModule
-using MaterialAcousticFluidModule
-using FEMMBaseModule
-using FEMMAcousticsModule
+using JFinEALE.JFFoundationModule
+using JFinEALE.FESetModule
+using JFinEALE.NodalFieldModule
+using JFinEALE.ForceIntensityModule
+using JFinEALE.PropertyAcousticFluidModule
+using JFinEALE.MaterialAcousticFluidModule
+using JFinEALE.FEMMBaseModule
+using JFinEALE.FEMMAcousticsModule
+
 
 function steadystate(modeldata::ModelDataDictionary)
     # Steady-state acoustics solver.
@@ -238,6 +239,5 @@ function steadystate(modeldata::ModelDataDictionary)
     setindex!(modeldata, P, "P");
     return modeldata            # ... And return the updated model data
 end
-
 
 end

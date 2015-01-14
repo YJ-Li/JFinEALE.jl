@@ -1,17 +1,4 @@
-using FESetModule
-using MeshSelectionModule
-using MeshModificationModule
-using MeshLineModule
-using MeshHexahedronModule
-using NodalFieldModule
-using IntegRuleModule
-using PropertyAcousticFluidModule
-using MaterialAcousticFluidModule
-using FEMMBaseModule
-using FEMMAcousticsModule
-using ForceIntensityModule
-using PhysicalUnitModule
-phun=PhysicalUnitModule.phun
+using JFinEALE
 using Base.Test
 
 function fahyL2example()
@@ -184,21 +171,7 @@ function fahyH27example()
     true
 end
 fahyH27example()
-
-using FESetModule
-using FENodeSetModule
-using MeshHexahedronModule
-using MeshSelectionModule
-using MeshModificationModule
-using NodalFieldModule
-using IntegRuleModule
-using PropertyAcousticFluidModule
-using MaterialAcousticFluidModule
-using FEMMBaseModule
-using FEMMAcousticsModule
-using ForceIntensityModule
-using PhysicalUnitModule
-phun=PhysicalUnitModule.phun
+ 
 function straight_duct_H8_1()
 
 

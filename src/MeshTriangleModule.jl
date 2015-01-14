@@ -1,8 +1,8 @@
 module MeshTriangleModule
 
-using JFFoundationModule
-using FESetModule
-using FENodeSetModule
+using JFinEALE.JFFoundationModule
+using JFinEALE.FESetModule
+using JFinEALE.FENodeSetModule
 
 # T3 Mesh of a rectangle.
 function T3block (Length::JFFlt,Width::JFFlt,nL::JFInt,nW::JFInt)

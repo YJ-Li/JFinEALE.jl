@@ -1,8 +1,8 @@
 module MeshModificationModule
 
-using JFFoundationModule
-using FENodeSetModule
-using FESetModule
+using JFinEALE.JFFoundationModule
+using JFinEALE.FENodeSetModule
+using JFinEALE.FESetModule
 
 function meshboundary{T<:FESet}(fes::T)
     # Extract the boundary finite elements from a mesh.

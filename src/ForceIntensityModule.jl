@@ -1,6 +1,6 @@
 module ForceIntensityModule
 
-using JFFoundationModule
+using JFinEALE.JFFoundationModule
 
 type ForceIntensity{T<:Number}
     #   % Distributed force (force intensity) class.

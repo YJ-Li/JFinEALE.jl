@@ -1,8 +1,8 @@
 module MaterialHeatDiffusionModule
 
 
-using JFFoundationModule
-using PropertyHeatDiffusionModule
+using JFinEALE.JFFoundationModule
+using JFinEALE.PropertyHeatDiffusionModule
 
 # Class for heat diffusion models of materials.
 type MaterialHeatDiffusion
