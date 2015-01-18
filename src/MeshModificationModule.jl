@@ -15,13 +15,13 @@ function meshboundary{T<:FESet}(fes::T)
     # supplied list of finite elements of manifold dimension (n).
     #    options = struct with any attributes that should be passed to the
     #    constructor of the boundary finite elements
-    # 
-    
+    #
+
     # Form all hyperfaces, non-duplicates are boundary cells
     hypf= FESetModule.boundaryconn(fes);    # get the connectivity of the boundary elements
     bdryconn =myunique(hypf);
     make = FESetModule.boundaryfe(fes);     # get the function that can make a boundary element
-    
+
     return make(conn =bdryconn);
 end
 export meshboundary
@@ -31,25 +31,30 @@ function mysortrows(A::JFIntMat)
 
     m,n = size(A);
     indx = (1:m); sindx = zeros(JFInt,m)
+    col = zeros(JFInt,m)
     for c = n:-1:1
-        sortperm!(sindx,A[indx,c],alg=QuickSort);
+        for i=1:m
+            col[i]=A[i,c]
+        end
+        sindx=sortperm(col,alg=QuickSort);
+        #sortperm!(sindx,col,alg=QuickSort); # available for 0.4, slightly faster
         indx = indx[sindx];
     end
     return A[indx,:]
 end
 
-function mysortdim2(A::JFIntMat)
+function mysortdim2!(A::JFIntMat)
     # Sort the rows of A by sorting each column from back to front.
 
     m,n = size(A);
     r = zeros(JFInt,n)
    @inbounds for k = 1:m
-        for m=1:n
-            r[m]=A[k,m]
-        end        
+        for i=1:n
+            r[i]=A[k,i]
+        end
         sort!(r);
-        for m=1:n
-            A[k,m]=r[m]
+        for i=1:n
+            A[k,i]=r[i]
         end
     end
     return A
@@ -58,7 +63,8 @@ end
 function  myunique(A::JFIntMat) # speeded up; now the bottleneck is mysortrows
     #println("size(A)=$(size(A))")
     maxA=maximum(A[:])::JFInt
-    @time sA=mysortdim2(A)::JFIntMat;
+    sA=deepcopy(A)
+    @time sA=mysortdim2!(sA)::JFIntMat;
     #@time sA=sort(A,2,alg=QuickSort)::JFIntMat;
     sA= [sA (1:size(A,1))+maxA]::JFIntMat
     @time sA =mysortrows(sA)
@@ -72,8 +78,8 @@ function  myunique(A::JFIntMat) # speeded up; now the bottleneck is mysortrows
                 d[k]=true;
                 break;
             end
-        end        
-    end   
+        end
+    end
     #d=(sA[1:end-1,:].!=sA[2:end,:]); # element-wise comparison!
     ad=zeros(JFInt,size(d,1)+1)
     ad[1]=1;
@@ -83,8 +89,8 @@ function  myunique(A::JFIntMat) # speeded up; now the bottleneck is mysortrows
                 ad[k]=1;
                 break;
             end
-        end        
-    end    
+        end
+    end
     #ad=map((x) -> (x?1:0),[true; any(d,2)]);
     iu=trues(length(ad))
     for k=1:(length(ad)-1)
@@ -130,7 +136,7 @@ function fusenodes(fens1::FENodeSet, fens2::FENodeSet, tolerance:: JFFlt)
     # %
     # % The indexes of the node set fens1 will have changed.
     # %
-    # % Example: 
+    # % Example:
     # % After the call to this function we have
     # % k=new_indexes_of_fens1_nodes(j) is the node in the node set fens which
     # % used to be node j in node set fens1.
@@ -144,13 +150,13 @@ function fusenodes(fens1::FENodeSet, fens2::FENodeSet, tolerance:: JFFlt)
     id1::JFIntVec =zeros(JFInt,size(xyz1,1));
     for rx=1:length(id1)
         id1[rx]=rx;
-    end    
+    end
     dim =size(xyz1,2);
     xyz2::JFFltMat = copy(fens2.xyz);
     id2::JFIntVec =zeros(JFInt,size(xyz2,1));
     for rx=1:length(id2)
         id2[rx]=rx;
-    end    
+    end
     n1::JFFlt= 0.0
     # % Mark nodes from the first array that are duplicated in the second
     if (tolerance>0.0) # should we attempt to merge nodes?
@@ -163,7 +169,7 @@ function fusenodes(fens1::FENodeSet, fens2::FENodeSet, tolerance:: JFFlt)
                 if (n1<tolerance)
                     id1[i] =-rx; break;
                 end
-            end       
+            end
         end
     end
     # % Generate  fused arrays of the nodes
@@ -190,7 +196,7 @@ function fusenodes(fens1::FENodeSet, fens2::FENodeSet, tolerance:: JFFlt)
     end
     nfens =mid-1;
     xyzm =xyzm[1:nfens,:];
-     
+
     # % Create the fused Node set
     fens =FENodeSetModule.FENodeSet(xyz=xyzm);
     # % The Node set 1 numbering will change
@@ -203,11 +209,11 @@ export fusenodes
 
 function compactfens(fens::FENodeSetModule.FENodeSet, connected::JFIntVec)
     # % Compact the finite element node set by deleting unconnected nodes.
-    #  
+    #
     # % fens = array of finite element nodes
     # % connected = The array element connected(j) is either 0 (when j is an unconnected
     # %    node), or a positive number (when node j is connected to other nodes by
-    # %    at least one finite element)  
+    # %    at least one finite element)
     # %
     # % Output:
     # % fens = new set of finite element nodes
@@ -215,28 +221,28 @@ function compactfens(fens::FENodeSetModule.FENodeSet, connected::JFIntVec)
     # %      connected nodes are (or 0 when the node was unconnected). For instance,
     # %      node 5 was connected, and in the new array it is the third node: then
     # %      new_numbering(5) is 3.
-    # % 
-    # % Examples: 
+    # %
+    # % Examples:
     # %
     # % Let us say there are nodes not connected to any finite element that you
     # % would like to remove from the mesh: here is how that would be
     # % accomplished.
-    # % 
+    # %
     # % connected = find_unconn_fens(fens, fes);
     # % [fens, new_numbering] =compact_fens(fens, connected);
     # % fes = renumber_fe_conn(fes, new_numbering);
-    # % 
+    # %
     # % Finally, check that the mesh is valid:
     # % validate_mesh(fens, fes);
-    # % 
-    
+    # %
+
     new_numbering=zeros(JFInt,count(fens),1);
     xyz =fens.xyz;
     nxyz =xyz;
     id=1;
     for i=1:length(connected)
         if (connected[i]>=0)
-            new_numbering[i]=id; 
+            new_numbering[i]=id;
             nxyz[id,:] =xyz [i,:];
             id=id+1;
         end
@@ -258,10 +264,10 @@ function mergemeshes{T<:FESet}(fens1::FENodeSet, fes1::T, fens2::FENodeSet, fes2
     # % the nodes that fall within a box of size "tolerance". If tolerance is set
     # % to zero, no merging of nodes is performed; the two meshes are simply
     # % concatenated together.
-    # % 
+    # %
     # % The merged node set, fens, and the two arrays of finite elements with
     # % renumbered  connectivities are returned.
-    # % 
+    # %
     # % Important notes: On entry into this function the connectivity of fes1
     # % point into fens1 and the connectivity of fes2 point into fens2. After
     # % this function returns the connectivity of both fes1 and fes2 point into
@@ -272,7 +278,7 @@ function mergemeshes{T<:FESet}(fens1::FENodeSet, fes1::T, fens2::FENodeSet, fes2
     # %
     # %
     # % See also: fusenodes, updateconn
-    # %  
+    # %
 
     # % Fuse the nodes
     #show(code_typed( fusenodes,(FENodeSet, FENodeSet, JFFlt)))
@@ -291,24 +297,24 @@ function mergenmeshes!(fensa, fesa, tolerance::JFFlt)
 # %
 # % function [fens,fesa] = merge_n_meshes(fensa, fesa, tolerance)
 # %
-# % Merge several meshes together either by simple concatenation of nodes or by 
-# % gluing together nodes within tolerance. 
+# % Merge several meshes together either by simple concatenation of nodes or by
+# % gluing together nodes within tolerance.
 # %
 # % Inputs:
 # % fensa= cell array of node sets, one for each mesh;
-# % fesa= cell array of finite element sets, one for each mesh;  
-# % tolerance= Geometric tolerance, maybe supplied as zero (>=0). 
-# % 
+# % fesa= cell array of finite element sets, one for each mesh;
+# % tolerance= Geometric tolerance, maybe supplied as zero (>=0).
+# %
 # % The meshes are glued together by
-# % merging the nodes that fall within a box of size "tolerance". If tolerance 
-# % is set to zero, no merging of nodes is performed; the nodes from the meshes are 
+# % merging the nodes that fall within a box of size "tolerance". If tolerance
+# % is set to zero, no merging of nodes is performed; the nodes from the meshes are
 # % simply concatenated together.
-# % 
+# %
 # % The merged node set, fens, and the cell array of finite element sets with
 # % renumbered  connectivities are returned.
-# % 
+# %
 # % Outputs:
-# % fens= merged node set, 
+# % fens= merged node set,
 # % fesa= cell array of finite element sets updated to use the merged node set.
 # %
 # %
@@ -343,7 +349,7 @@ function mergenodes(fens::FENodeSetModule.FENodeSet, fes::FESetModule.FESet, tol
     # % are returned.
     # %
     # % See also: fuse_nodes
-   
+
     xyz1 = fens.xyz;
     dim =size(xyz1,2);
     id1 = (1:FENodeSetModule.count(fens))';
@@ -351,7 +357,7 @@ function mergenodes(fens::FENodeSetModule.FENodeSet, fes::FESetModule.FESet, tol
     xyzd= zeros(size(xyz1));
     d= zeros(size(xyz1,1));
     m= trues(size(xyz1,1));
-    # Mark nodes from the array that are duplicated 
+    # Mark nodes from the array that are duplicated
     for i=1:FENodeSetModule.count(fens)
         if (id1[i]>0) # This node has not yet been marked for merging
             XYZ =xyz1[i,:];
@@ -387,9 +393,9 @@ function mergenodes(fens::FENodeSetModule.FENodeSet, fes::FESetModule.FESet, tol
         conns[i,:]=id1[conn];
     end
     fes.conn=conns;
-    
+
     fens=FENodeSetModule.FENodeSet(xyz=xyzm[1:nfens,:]);
-    
+
     return fens,fes
 end
 export mergenodes
@@ -397,27 +403,27 @@ export mergenodes
 function renumberfeconn(fes::FESetModule.FESet, new_numbering::JFIntVec)
     # % Renumber the nodes in the connectivity of the finite elements based on a new
     # % numbering for the nodes.
-    # % 
+    # %
     # % function fes = renumber_fe_conn(fes, new_numbering)
-    # % 
-    # % fes =finite element set 
+    # %
+    # % fes =finite element set
     # % new_numbering = new serial numbers for the nodes.  The connectivity
     # %           should be changed as conn(j) --> new_numbering(conn(j))
-    # % 
+    # %
     # % Output:
     # % fes = new Finite element set
-    # % 
+    # %
     # % Let us say there are nodes not connected to any finite element that you
     # % would like to remove from the mesh: here is how that would be
     # % accomplished.
-    # % 
+    # %
     # % connected = find_unconn_fens(fens, fes);
     # % [fens, new_numbering] =compact_fens(fens, connected);
     # % fes = renumber_fe_conn(fes, new_numbering);
-    # % 
+    # %
     # % Finally, check that the mesh is valid:
     # % validate_mesh(fens, fes);
-    # % 
+    # %
     conn =fes.conn;
     for i=1:size(conn,1)
         c=conn[i,:];

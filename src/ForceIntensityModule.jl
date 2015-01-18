@@ -91,8 +91,6 @@ function  ForceIntensity{T<:Number}(force::JFMat{T},callback::Function)
     #             %            dimension of the displacement/geometry fields; magn may be an array
     #             %            of doubles (representing a constant, or uniform, force intensity)
     #             % or a function handle/in-line function with signature
-    #             %                     function val=f(xyz)
-    #             %            or
     #             %                     function val=f(xyz,J)
     #             %            where
     #             %                     xyz = location, at which the force intensity
