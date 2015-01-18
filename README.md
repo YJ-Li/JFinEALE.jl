@@ -21,3 +21,4 @@ Pkg.clone("https://github.com/PetrKryslUCSD/JFinEALE.jl")
 ## Testing
 
 Pkg.test("JFinEALE")
+[![Build Status](https://travis-ci.org/PetrKryslUCSD/JFinEALE.jl.png)](https://travis-ci.org/PetrKryslUCSD/JFinEALE.jl)
