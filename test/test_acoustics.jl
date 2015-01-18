@@ -230,6 +230,15 @@ function straight_duct_H8_1()
     #println("  real $(minimum(real(P.values)))/$(maximum(real(P.values)))")
     #println("  imag $(minimum(imag(P.values)))/$(maximum(imag(P.values)))")
 
+
+    println("")
+    # println("""
+    #         $(abs(minimum(real(P.values))))
+    #         $(abs(minimum(imag(P.values))))
+    #         $(abs(maximum(real(P.values))))
+    #         $(abs(maximum(imag(P.values))))
+    #         """) 
+    
     ref=rho*c
     @test abs(minimum(real(P.values))-(-ref))/ref < 0.02
     @test abs(minimum(imag(P.values))-(-ref))/ref < 0.02

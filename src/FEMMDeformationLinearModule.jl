@@ -154,7 +154,7 @@ function mass{MR<:DeformationModelReduction,
             At_mul_B!(loc,Ns[j],x);# Quadrature points location
             At_mul_B!(J, x, gradNparams[j]); # calculate the Jacobian matrix 
             Jac = FESetModule.Jacobianvolume(fes,conn, Ns[j], J, x);# Jacobian
-            Me = Me + (Nexp'*Nexp) * (rho * Jac * w(j));
+            # Me = Me + (Nexp'*Nexp) * (rho * Jac * w(j));
             thefactor::JFFlt =(rho*Jac*w[j]);
             for nx=1:Medim # Do: Me = Me + (B'*(D*(Jac*w[j]))*B); 
                 for mx=1:Medim
