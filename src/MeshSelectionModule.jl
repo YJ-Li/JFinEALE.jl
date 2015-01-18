@@ -545,27 +545,9 @@ function vselect(v::JFFltMat; args...)
             inflate=val
         end
     end
-    for arg in args
-        sy, val = arg
-        if sy==:box
-            box=val
-        elseif sy==:distance
-            distance=val
-        elseif sy==:from
-            from=val
-        elseif sy==:plane
-            plane=val
-        elseif sy==:thickness
-            thickness=val
-        elseif sy==:nearestto
-            nearestto=val
-        elseif sy==:inflate
-            inflate=val
-        end
-    end
 
     # Did we get an inflate value
-    inflatevalue =0;
+    inflatevalue =0.0;
     if inflate!=nothing
         inflatevalue = inflate;
     end
@@ -576,7 +558,7 @@ function vselect(v::JFFltMat; args...)
 
     # Process the different options
     if box!=nothing
-        dim=length(box)/2;
+        dim=length(box)/2.;
         if dim!= size(v,2)
             error("Dimension of box not matched to dimension of array of vertices")
         end
@@ -627,7 +609,7 @@ function vselect(v::JFFltMat; args...)
         nn=1;
     end
     if (nn==0)
-        vlist = [];# nothing matched
+        vlist = JFInt[];# nothing matched
     else
         vlist =vlist[1:nn];
     end

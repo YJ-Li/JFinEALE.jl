@@ -68,7 +68,7 @@ function acousticmass{S<:FESet,T<:Number,A<:SysmatAssemblerBase}(self::FEMMAcous
     startassembly!(assembler, Cedim, Cedim, nfes, P.nfreedofs, P.nfreedofs);
     for i=1:nfes # Loop over elements
         getconn!(fes,conn,i);# retrieve element node numbers
-        gathervalues!(geom,x,conn);# retrieve element coordinates
+        gathervaluesasmat!(geom,x,conn);# retrieve element coordinates
         fill!(Ce, 0.0); # Initialize element matrix
         for j=1:npts # Loop over quadrature points 
             At_mul_B!(loc,Ns[j],x);# Quadrature points location
@@ -85,7 +85,7 @@ function acousticmass{S<:FESet,T<:Number,A<:SysmatAssemblerBase}(self::FEMMAcous
                 end
             end
         end # Loop over quadrature points
-        gatherdofnums!(P,dofnums,conn);# retrieve degrees of freedom
+        gatherdofnumsasvec!(P,dofnums,conn);# retrieve degrees of freedom
         assemble!(assembler, Ce, dofnums, dofnums);# assemble symmetric matrix
     end # Loop over elements
     return makematrix!(assembler);
@@ -141,9 +141,9 @@ function nzebcloadsacousticmass{S<:FESet,T<:Number,A<:SysvecAssemblerBase}(self:
     # Now loop over all finite elements in the set
     for i=1:nfes # Loop over elements
         getconn!(fes,conn,i);# retrieve element node numbers
-        gathervalues!(P,pP,conn);# retrieve element coordinates
+        gathervaluesasmat!(P,pP,conn);# retrieve element coordinates
         if norm(pP) != 0     # Is the load nonzero?
-            gathervalues!(geom,x,conn);# retrieve element coordinates
+            gathervaluesasmat!(geom,x,conn);# retrieve element coordinates
             fill!(Ce, 0.0);
             for j=1:npts # Loop over quadrature points 
                 At_mul_B!(loc,Ns[j],x);# Quadrature points location
@@ -160,7 +160,7 @@ function nzebcloadsacousticmass{S<:FESet,T<:Number,A<:SysvecAssemblerBase}(self:
                     end
                 end
             end # Loop over quadrature points
-            gatherdofnums!(P,dofnums,conn); # retrieve degrees of freedom
+            gatherdofnumsasvec!(P,dofnums,conn); # retrieve degrees of freedom
             assemble!(assembler, -Ce*pP, dofnums); # assemble element load vector
         end
     end
@@ -224,7 +224,7 @@ function acousticstiffness{S<:FESet,T<:Number,A<:SysmatAssemblerBase}(self::FEMM
     startassembly!(assembler, Sedim, Sedim, nfes, Pddot.nfreedofs, Pddot.nfreedofs);
     for i=1:nfes # Loop over elements
         getconn!(fes,conn,i);# retrieve element node numbers
-        gathervalues!(geom,x,conn);# retrieve element coordinates
+        gathervaluesasmat!(geom,x,conn);# retrieve element coordinates
         fill!(Se, 0.0); # Initialize element matrix
         for j=1:npts # Loop over quadrature points
             At_mul_B!(loc, Ns[j], x);# Quadrature points location
@@ -236,7 +236,7 @@ function acousticstiffness{S<:FESet,T<:Number,A<:SysmatAssemblerBase}(self::FEMM
                 end
             end
         end # Loop over quadrature points
-        gatherdofnums!(Pddot,dofnums,conn);# retrieve degrees of freedom
+        gatherdofnumsasvec!(Pddot,dofnums,conn);# retrieve degrees of freedom
         assemble!(assembler, Se, dofnums, dofnums);# assemble symmetric matrix
     end # Loop over elements
     return makematrix!(assembler);
@@ -295,9 +295,9 @@ function nzebcloadsacousticstiffness{S<:FESet,T<:Number,A<:SysvecAssemblerBase}(
     # Now loop over all finite elements in the set
     for i=1:nfes # Loop over elements
         getconn!(fes,conn,i);# retrieve element node numbers
-        gathervalues!(Pddot,pPddot,conn);# retrieve element coordinates
+        gathervaluesasmat!(Pddot,pPddot,conn);# retrieve element coordinates
         if norm(pPddot) != 0     # Is the load nonzero?
-            gathervalues!(geom,x,conn);# retrieve element coordinates
+            gathervaluesasmat!(geom,x,conn);# retrieve element coordinates
             fill!(Se, 0.0);
             for j=1:npts # Loop over quadrature points 
                 At_mul_B!(loc,Ns[j],x);# Quadrature points location
@@ -309,7 +309,7 @@ function nzebcloadsacousticstiffness{S<:FESet,T<:Number,A<:SysvecAssemblerBase}(
                     end
                 end
             end # Loop over quadrature points
-            gatherdofnums!(Pddot,dofnums,conn); # retrieve degrees of freedom
+            gatherdofnumsasvec!(Pddot,dofnums,conn); # retrieve degrees of freedom
             assemble!(assembler, -Se*pPddot, dofnums); # assemble element load vector
         end
     end
@@ -372,7 +372,7 @@ function acousticABC{S<:FESet,T<:Number,A<:SysmatAssemblerBase}(self::FEMMAcoust
     startassembly!(assembler, Dedim, Dedim, nfes, Pdot.nfreedofs, Pdot.nfreedofs);
     for i=1:nfes # Loop over elements
         getconn!(fes,conn,i);# retrieve element node numbers
-        gathervalues!(geom,x,conn);# retrieve element coordinates
+        gathervaluesasmat!(geom,x,conn);# retrieve element coordinates
         fill!(De, 0.0); # Initialize element matrix
         for j=1:npts # Loop over quadrature points 
             At_mul_B!(loc,Ns[j],x);# Quadrature points location
@@ -384,7 +384,7 @@ function acousticABC{S<:FESet,T<:Number,A<:SysmatAssemblerBase}(self::FEMMAcoust
                 end
             end
         end # Loop over quadrature points
-        gatherdofnums!(Pdot,dofnums,conn);# retrieve degrees of freedom
+        gatherdofnumsasvec!(Pdot,dofnums,conn);# retrieve degrees of freedom
         assemble!(assembler, De, dofnums, dofnums);# assemble symmetric matrix
     end # Loop over elements
     return makematrix!(assembler);

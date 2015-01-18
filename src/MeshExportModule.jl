@@ -7,7 +7,9 @@ const T4=10
 const H8=12
 
 # Export mesh to a VTK 1.0 file as an unstructured grid.
-function vtkexportmesh (theFile::String,Connectivity,Points, Cell_type; scalars=nothing, scalars_name ="scalars_name",binary = false)
+function vtkexportmesh (theFile::String,Connectivity,Points, Cell_type;
+                        vectors=nothing,vectors_name ="vectors",
+                        scalars=nothing, scalars_name ="scalars",binary = false)
 # theFile= File name as a string,
     # Connectivity= connectivity array, one row per cell,
     # Points= Coordinate array, one row per point,
@@ -109,17 +111,27 @@ function vtkexportmesh (theFile::String,Connectivity,Points, Cell_type; scalars=
         end
     end
 
-    #    if (~isempty(vectors))
-    #        print(fid,"point_data %d\n",size(vectors,1));
-    #        print(fid,"VECTORS %s double\n",vectors_name);
-    #        if (~binary)
-    #            for j= 1:size(vectors,1)
-    #                    print(fid,"%g %g %g\n",vectors(j,:));
-    #                end
-    #        else
-    #            fwrite(fid,cast(vectors,"double"),"double","n");
-    #        end
-    #    end
+    if vectors!=nothing
+        print(fid,"POINT_DATA ",size(vectors,1),"\n");
+        print(fid,"VECTORS ",vectors_name," double\n");
+        #print(fid,"LOOKUP_TABLE default\n");
+        if size(vectors, 2)<3
+            X=   zeros(size (vectors,1),3)
+            X [:,1: size(vectors,2)] = vectors
+        end
+        if (!binary)
+            for j= 1:size(X,1)
+                k=1;
+                print(fid,X[j,k]);
+                for k=2:size(X,2)
+                    print(fid," ",X[j,k]);
+                end
+                print(fid,"\n");
+            end
+        else
+            fwrite(fid,cast(X,"double"),"double","n");
+        end
+    end
 
     print(fid,"\n");
     fid=close(fid);

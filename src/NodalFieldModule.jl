@@ -54,31 +54,79 @@ function gathersysvec{T<:Number} (self::NodalField{T})
 end
 export gathersysvec
 
-# Gather values from the field.
-function gathervalues!{T<:Number}(self::NodalField,dest::JFMat{T},conn::JFIntMat)
+# Gather values from the field "as vector".
+function gathervaluesasvec!{T<:Number}(self::NodalField,dest::JFVec{T},conn::JFIntVec)
     en::JFInt=1;
-    for j=1:size(self.values,2)
-        for i=1:length(conn)
+    for i=1:length(conn)
+        for j=1:size(self.values,2)
             dest[en]=self.values[conn[i],j];
             en=en+1;
         end
     end
     return self
 end
-export gathervalues!
+export gathervaluesasvec!
 
-# Gather dofnums from the field.
-function gatherdofnums!(self::NodalField,dest::JFIntMat,conn::JFIntMat)
+# Gather values from the field "as vector".
+function gathervaluesasvec!{T<:Number}(self::NodalField,dest::JFVec{T},conn::JFIntMat)
     en::JFInt=1;
-    for j=1:size(self.dofnums,2)
-        for i=1:length(conn)
+    for i=1:length(conn)
+        for j=1:size(self.values,2)
+            dest[en]=self.values[conn[i],j];
+            en=en+1;
+        end
+    end
+    return self
+end
+export gathervaluesasvec!
+
+# Gather values from the field "as a matrix".
+function gathervaluesasmat!{T<:Number}(self::NodalField,dest::JFMat{T},conn::JFIntVec)
+    for i=1:length(conn)
+        for j=1:size(self.values,2)
+            dest[i,j]=self.values[conn[i],j];
+        end
+    end
+    return self
+end
+export gathervaluesasmat!
+
+# Gather values from the field "as a matrix".
+function gathervaluesasmat!{T<:Number}(self::NodalField,dest::JFMat{T},conn::JFIntMat)
+    for i=1:length(conn)
+        for j=1:size(self.values,2)
+            dest[i,j]=self.values[conn[i],j];
+        end
+    end
+    return self
+end
+export gathervaluesasmat!
+
+# Gather dofnums from the field "as vector".
+function gatherdofnumsasvec!(self::NodalField,dest::JFIntMat,conn::JFIntMat)
+    en::JFInt=1;
+    for i=1:length(conn)
+        for j=1:size(self.dofnums,2)
             dest[en]=self.dofnums[conn[i],j];
             en=en+1;
         end
     end
     return self
 end
-export gatherdofnums!
+export gatherdofnumsasvec!
+
+# Gather dofnums from the field "as vector".
+function gatherdofnumsasvec!(self::NodalField,dest::JFIntMat,conn::JFIntVec)
+    en::JFInt=1;
+    for i=1:length(conn)
+        for j=1:size(self.dofnums,2)
+            dest[en]=self.dofnums[conn[i],j];
+            en=en+1;
+        end
+    end
+    return self
+end
+export gatherdofnumsasvec!
 
 # Number the degrees of freedom.
 function numberdofs!(self::NodalField)
@@ -106,7 +154,11 @@ end
 export numberdofs!
 
 # Set the EBCs (essential boundary conditions).
-function setebc!{T<:Number}(self::NodalField, fenids::JFIntVec, is_fixed::Union(BitArray, Array{Bool}), comp::JFIntVec, val::JFVec{T})
+function setebc!{T<:Number}(self::NodalField,
+                            fenids::JFIntVec,
+                            is_fixed::Union(BitArray, Array{Bool}),
+                            comp::JFIntVec,
+                            val::JFVec{T})
     #%
     #% function retobj = set_ebc (self, fenids, is_fixed, comp, val)
     #%

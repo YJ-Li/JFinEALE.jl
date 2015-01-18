@@ -52,8 +52,9 @@ export NodalField
 export ndofn
 export nfens
 export gathersysvec
-export gathervalues!
-export gatherdofnums!
+export gathervaluesasvec!
+export gathervaluesasmat!
+export gatherdofnumsasvec!
 export numberdofs!
 export setebc!
 export applyebc!
@@ -136,14 +137,70 @@ using JFinEALE.PropertyAcousticFluidModule
 export PropertyAcousticFluid
 
 include("MaterialAcousticFluidModule.jl")
-export MaterialAcousticFluid
-
 using JFinEALE.MaterialAcousticFluidModule
 export MaterialAcousticFluid
 
+include("DeformationModelReductionModule.jl")
+using JFinEALE.DeformationModelReductionModule
+export DeformationModelReduction
+export DeformationModelReduction1D
+export DeformationModelReduction2DStrain
+export DeformationModelReduction2DStress
+export DeformationModelReduction2DAxisymm
+export DeformationModelReduction3D
+export nstrains
+export Blmat!
+
+include("PropertyDeformationLinearModule.jl")
+using JFinEALE.PropertyDeformationLinearModule
+export PropertyDeformationLinear
+export tangentmoduli3d!
+
+include("PropertyDeformationLinearIsoModule.jl")
+using JFinEALE.PropertyDeformationLinearIsoModule
+export PropertyDeformationLinearIso
+export tangentmoduli3d!
+
+include("MaterialDeformationModule.jl")
+using JFinEALE.MaterialDeformationModule
+export strain2x2tto3v!
+export strain3vto2x2t!
+export strain3x3tto6v!
+export strain6vto3x3t!
+export stress2x2to3v!
+export stress3vto2x2t!
+export stress3vto3x3t!
+export stress4vto3x3t!
+export stress6vto3x3t!
+export stress3x3tto6v!
+export strain9vto6v!
+export strain6vto9v!
+export stress9vto6v!
+
+include("MaterialDeformationLinearModule.jl")
+using JFinEALE.MaterialDeformationLinearModule
+export MaterialDeformationLinear
+export tangentmoduli!
+export update!
+export thermalstress
+
 include("AssemblyModule.jl")
 using JFinEALE.AssemblyModule
-export SysmatAssemblerBase, SysmatAssemblerSparse, startassembly!, assemble!, makematrix!, SysmatAssemblerSparseSymm, SysvecAssemblerBase, makevector!
+export SysmatAssemblerBase
+export SysmatAssemblerSparse
+export startassembly!
+export assemble!
+export makematrix!
+export SysmatAssemblerSparseSymm
+export startassembly!
+export assemble!
+export makematrix!
+export SysvecAssemblerBase
+export SysvecAssembler
+export startassembly!
+export assemble!
+export makevector!
+
 
 include("IntegRuleModule.jl")
 using JFinEALE.IntegRuleModule
@@ -160,7 +217,6 @@ export integrationdata
 export integratefieldfunction
 export integratefunction
 export distribloads
-export distribloads
 
 include("FEMMHeatDiffusionModule.jl")
 using JFinEALE.FEMMHeatDiffusionModule
@@ -172,7 +228,18 @@ export nzebcloadsconductivity
 
 include("FEMMAcousticsModule.jl")
 using JFinEALE.FEMMAcousticsModule
-export FEMMAcoustics, acousticmass, nzebcloadsacousticmass, acousticstiffness, nzebcloadsacousticstiffness, acousticABC
+export FEMMAcoustics
+export acousticmass
+export nzebcloadsacousticmass
+export acousticstiffness
+export nzebcloadsacousticstiffness
+export acousticABC
+
+
+include("FEMMDeformationLinearModule.jl")
+using JFinEALE.FEMMDeformationLinearModule
+export FEMMDeformationLinear
+export stiffness
 
 include("AcousticsAlgorithmModule.jl")
 using JFinEALE.AcousticsAlgorithmModule

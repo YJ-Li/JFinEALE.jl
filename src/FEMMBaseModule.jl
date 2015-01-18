@@ -12,10 +12,11 @@ using JFinEALE.AssemblyModule
 #     % element model classes are derived.
 
 type FEMMBase{T<:FESet}
-  fes::T # finite element set object
-  integration_rule::IntegRule  # integration rule object
-  getRm::Function # function to compute the material orientation matrix
-  fen2fe_map  # map from finite element nodes to connected finite elements
+    fes::T # finite element set object
+    integration_rule::IntegRule  # integration rule object
+    updateRm::Function # function to update the material orientation matrix
+    Rm::JFFltMat # the material orientation matrix (buffer)
+    fen2fe_map  # map from finite element nodes to connected finite elements
 end
 export FEMMBase
 
@@ -52,53 +53,56 @@ function  FEMMBase{T<:FESet} (fes::T,
     #          label= the label of the finite element in which the point XYZ resides
 
     # The material orientation matrix function is a stand-in: it is going to get replaced below
-    self=  FEMMBase (deepcopy(fes), deepcopy(integration_rule), (x,y,z)->  1.0, nothing)
-    setRm!(self,Rm)
+    self=  FEMMBase (deepcopy(fes), deepcopy(integration_rule), (x,y,z)->  1.0, Array(Float64,0,0), nothing)
+    setupdateRm!(self,Rm)
 end
 
-function setRm!(self::FEMMBase,Rm= nothing)
+function setupdateRm!(self::FEMMBase,Rm= nothing)
     # Set the material orientation matrix.
-    if Rm!= nothing
+    if Rm != nothing
         if typeof(Rm)== Function
             function g!(Rmout::JFFltMat, XYZ::JFFltMat,tangents::JFFltMat,fe_label::JFInt)
                 r=Rm(XYZ, tangents, fe_label)::JFFltMat
                 copy!(Rmout,r)
             end
         elseif typeof(Rm)== JFFltMat
-            rRm=deepcopy(Rm);
+            self.Rm=deepcopy(Rm); # this is the value of the orientation matrix, simply save it
             function g!(Rmout::JFFltMat, XYZ::JFFltMat,tangents::JFFltMat,fe_label::JFInt)
-                copy!(Rmout,rRm)
+                # and then there's nothing to do inside this function
             end
             if norm(Rm'*Rm-eye(size(Rm, 2)))>1e-9
                 error("Non-orthogonal material orientation matrix!");
             end
         else
             function g!(Rmout::JFFltMat, XYZ::JFFltMat,tangents::JFFltMat,fe_label::JFInt)
-                fill!(Rmout,0.0) # garbage
+                # dummy function: we shouldn't get here except by error
             end
             error("Cannot handle class of Rm: " * string(typeof(Rm)))
         end
-    else
+    else   # identity is the default 
         function g!(Rmout::JFFltMat, XYZ::JFFltMat,tangents::JFFltMat,fe_label::JFInt)
-            fill!(Rmout,0.0)
-            for i=1:size(Rmout,2)
-                Rmout[i,i]= 1.0
-            end            
+            # nothing to be done: the work is performed in updateRm!
         end
     end
-    self.getRm= g!
-    #show( code_typed(self.getRm, (JFFltMat, JFFltMat, JFInt)) )
-        
+    self.updateRm= g!;
     return self
 end
 export setRm!
 
-function getRm!(self::FEMMBase,Rmout::JFFltMat, XYZ::JFFltMat,tangents::JFFltMat,fe_label::JFInt)
-    # Get the material orientation matrix.
-    self.getRm(Rmout, XYZ,tangents,fe_label)
+function updateRm!(self::FEMMBase,XYZ::JFFltMat,tangents::JFFltMat,fe_label::JFInt)
+    # Update the material orientation matrix.
+    # It can now be retrieved from the buffer (self.Rm).
+    if (length(self.Rm)== 0) # If the buffer is not initialized yet
+        self.Rm = zeros(size(XYZ,2),size(tangents,2)); # space dimension, manifold dimension
+        fill!(self.Rm,0.0)
+        for i=1:size(self.Rm,2)
+            self.Rm[i,i]= 1.0
+        end            
+    end
+    self.updateRm(self.Rm, XYZ,tangents,fe_label)
     return self
 end
-export getRm!
+export updateRm!
 
 function genisoRm(XYZ::JFFltMat,tangents::JFFltMat,fe_label::JFInt)
     #  Material orientation matrix for isotropic materials.
@@ -223,8 +227,8 @@ function integratefieldfunction{T<:Number,R} (self::FEMMBase,
     result = initial;           # initial value for the result
     for i=1:nfes #Now loop over all fes in the block
         getconn!(fes,conn,i);
-        gathervalues!(geom,x,conn);# retrieve element coordinates
-        gathervalues!(afield,a,conn);# retrieve element dofs
+        gathervaluesasmat!(geom,x,conn);# retrieve element coordinates
+        gathervaluesasmat!(afield,a,conn);# retrieve element dofs
         for j=1:npts #Loop over all integration points
             At_mul_B!(loc,Ns[j],x);# Quadrature point location
             At_mul_B!(val,Ns[j],a);# Field value at the quadrature point
@@ -282,7 +286,7 @@ function integratefunction (self, geom, fh, varargin)
     result = 0.00;# Initialize the result
     for i=1:nfes  # Now loop over all fes in the set
         getconn!(fes,conn,i);
-        gathervalues!(geom,x,conn);# retrieve element coordinates
+        gathervaluesasmat!(geom,x,conn);# retrieve element coordinates
         for j=1:npts #Loop over all integration points
             At_mul_B!(loc,Ns[j],x);# Quadrature points location
             At_mul_B!(J, x, gradNparams[j]); # calculate the Jacobian matrix 
@@ -358,14 +362,14 @@ function distribloads{S<:FESet,T<:Number,A<:SysvecAssemblerBase}(self::FEMMBase{
     startassembly!(assembler, P.nfreedofs);
     for i=1:nfes # Loop over elements  
         getconn!(fes,conn,i);
-        gathervalues!(geom,x,conn);# retrieve element coordinates
+        gathervaluesasmat!(geom,x,conn);# retrieve element coordinates
         fill!(Fe, 0.0);
         for j=1:npts
             At_mul_B!(loc,Ns[j],x);# Quadrature points location
             At_mul_B!(J, x, gradNparams[j]); # calculate the Jacobian matrix 
             Jac = FESetModule.Jacobianvolume(fes,conn, Ns[j], J, x);# Jacobian
             fi=getforce!(fi,loc,J); # retrieve the applied load
-            Factor::T = (Jac * w[j]);
+            Factor::JFFlt = (Jac * w[j]);
             rx::JFInt=1;
             for kx=1:nne # all the nodes
                 for mx=1:ndn   # all the degrees of freedom
@@ -374,7 +378,7 @@ function distribloads{S<:FESet,T<:Number,A<:SysvecAssemblerBase}(self::FEMMBase{
                 end    
             end 
         end
-        gatherdofnums!(P,dofnums,conn);
+        gatherdofnumsasvec!(P,dofnums,conn);
         assemble!(assembler, Fe, dofnums); 
     end
     F= makevector!(assembler);

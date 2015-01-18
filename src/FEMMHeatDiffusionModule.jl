@@ -10,7 +10,7 @@ using JFinEALE.AssemblyModule
 
 # Class for heat diffusion finite element modeling machine.
 type FEMMHeatDiffusion{S<:FESet}
-    femmbase::FEMMBase{S} # base finite time modeling machine
+    femmbase::FEMMBase{S} # base finite element modeling machine
     material::MaterialHeatDiffusion # material object
 end
 export FEMMHeatDiffusion
@@ -62,21 +62,20 @@ function conductivity{S<:FESet,A<:SysmatAssemblerBase}(self::FEMMHeatDiffusion{S
     x::JFFltMat =zeros(JFFlt,nne,sdim); # array of node coordinates -- used as a buffer
     dofnums::JFIntMat=zeros(JFInt,1,Kedim); # degree of freedom array -- used as a buffer
     loc::JFFltMat =zeros(JFFlt,1,sdim); # quadrature point location -- used as a buffer
-    Rm::JFFltMat=eye(JFFlt,sdim,mdim); # material orientation matrix -- used as a buffer
     J::JFFltMat =eye(JFFlt,sdim,mdim); # Jacobian matrix -- used as a buffer
     RmTJ::JFFltMat =zeros(JFFlt,mdim,mdim); # intermediate result -- used as a buffer
     gradN::JFFltMat =zeros(JFFlt,nne,mdim); # intermediate result -- used as a buffer
     startassembly!(assembler, Kedim, Kedim, nfes, temp.nfreedofs, temp.nfreedofs);
     for i=1:nfes # Loop over elements
         getconn!(fes,conn,i);
-        gathervalues!(geom,x,conn);# retrieve element coordinates
+        gathervaluesasmat!(geom,x,conn);# retrieve element coordinates
         fill!(Ke, 0.0); # Initialize element matrix
         for j=1:npts # Loop over quadrature points 
             At_mul_B!(loc,Ns[j],x);# Quadrature points location
             At_mul_B!(J, x, gradNparams[j]); # calculate the Jacobian matrix 
             Jac = FESetModule.Jacobianvolume(fes,conn, Ns[j], J, x);# Jacobian
-            getRm!(self.femmbase,Rm,loc,J,labels[i]); # Material orientation matrix 
-            At_mul_B!(RmTJ, Rm, J); # local Jacobian matrix 
+            updateRm!(self.femmbase,loc,J,labels[i]); # Material orientation matrix
+            At_mul_B!(RmTJ, self.femmbase.Rm, J); # local Jacobian matrix 
             # gradient WRT material coordinates
             FESetModule.gradN!(fes,gradN,gradNparams[j],RmTJ);#Do: gradN = gradNparams[j]/RmTJ;
             for nx=1:Kedim # Do: Ke = Ke + gradN*(kappa_bar*(Jac*w[j]))*gradN' ;
@@ -89,7 +88,7 @@ function conductivity{S<:FESet,A<:SysmatAssemblerBase}(self::FEMMHeatDiffusion{S
                 end
             end
         end # Loop over quadrature points
-        gatherdofnums!(temp,dofnums,conn);# retrieve degrees of freedom
+        gatherdofnumsasvec!(temp,dofnums,conn);# retrieve degrees of freedom
         assemble!(assembler, Ke, dofnums, dofnums);# assemble symmetric matrix
     end # Loop over elements
     return makematrix!(assembler);
@@ -141,7 +140,6 @@ function nzebcloadsconductivity{S<:FESet,A<:SysvecAssemblerBase}(self::FEMMHeatD
     x::JFFltMat =zeros(JFFlt,nne,sdim); # array of node coordinates -- used as a buffer
     dofnums::JFIntMat=zeros(JFInt,1,Kedim); # degree of freedom array -- used as a buffer
     loc::JFFltMat =zeros(JFFlt,1,sdim); # quadrature point location -- used as a buffer
-    Rm::JFFltMat=eye(JFFlt,sdim,mdim); # material orientation matrix -- used as a buffer
     J::JFFltMat =eye(JFFlt,sdim,mdim); # Jacobian matrix -- used as a buffer
     RmTJ::JFFltMat =zeros(JFFlt,mdim,mdim); # intermediate result -- used as a buffer
     gradN::JFFltMat =zeros(JFFlt,nne,mdim); # intermediate result -- used as a buffer
@@ -150,16 +148,16 @@ function nzebcloadsconductivity{S<:FESet,A<:SysvecAssemblerBase}(self::FEMMHeatD
     # Now loop over all finite elements in the set
     for i=1:nfes # Loop over elements
         getconn!(fes,conn,i);
-        gathervalues!(temp,pT,conn);# retrieve element coordinates
+        gathervaluesasmat!(temp,pT,conn);# retrieve element coordinates
         if norm(pT) != 0     # Is the load nonzero?
-            gathervalues!(geom,x,conn);# retrieve element coordinates
+            gathervaluesasmat!(geom,x,conn);# retrieve element coordinates
             fill!(Ke, 0.0);
             for j=1:npts # Loop over quadrature points 
                 At_mul_B!(loc,Ns[j],x);# Quadrature points location
                 At_mul_B!(J, x, gradNparams[j]); # calculate the Jacobian matrix 
                 Jac = FESetModule.Jacobianvolume(fes,conn, Ns[j], J, x);# Jacobian
-                getRm!(self.femmbase,Rm,loc,J,labels[i]); # Material orientation matrix 
-                At_mul_B!(RmTJ, Rm, J); # local Jacobian matrix 
+                updateRm!(self.femmbase,loc,J,labels[i]); # Material orientation matrix 
+                At_mul_B!(RmTJ, self.femmbase.Rm, J); # local Jacobian matrix 
                 # gradient WRT material coordinates
                 FESetModule.gradN!(fes,gradN,gradNparams[j],RmTJ);#Do: gradN = gradNparams[j]/RmTJ;
                 for nx=1:Kedim # Do: Ke = Ke + gradN*(kappa_bar*(Jac*w[j]))*gradN' ;
@@ -172,7 +170,7 @@ function nzebcloadsconductivity{S<:FESet,A<:SysvecAssemblerBase}(self::FEMMHeatD
                     end
                 end
             end # Loop over quadrature points
-            gatherdofnums!(temp,dofnums,conn); # retrieve degrees of freedom
+            gatherdofnumsasvec!(temp,dofnums,conn); # retrieve degrees of freedom
             assemble!(assembler, -Ke*pT, dofnums); # assemble element load vector
         end
     end

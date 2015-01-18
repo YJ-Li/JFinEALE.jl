@@ -72,7 +72,7 @@ function Poisson1()
     true
 end
 Poisson1()
- 
+
 function annulus_Q4_example_algo()
 
 
@@ -140,7 +140,7 @@ function annulus_Q4_example_algo()
     # MeshExportModule.vtkexportmesh ("annulusmod.vtk", fes.conn, [geom.values Temp.values], MeshExportModule.Q4; scalars=Temp.values, scalars_name ="Temperature")
 end
 annulus_Q4_example_algo()
-  
+
 function Poisson_FE_Q4_1()
 
 
@@ -223,7 +223,7 @@ function Poisson_FE_Q4_1()
     true
 end
 Poisson_FE_Q4_1()
- 
+
 function Poisson_FE_example_algo()
 
 
@@ -288,3 +288,86 @@ function Poisson_FE_example_algo()
 
 end
 Poisson_FE_example_algo()
+
+function PoissonRm2()
+    
+
+    # println("""
+
+    #         Heat conduction example described by Amuthan A. Ramabathiran
+    #         http://www.codeproject.com/Articles/579983/Finite-Element-programming-in-Julia:
+    #         Unit square, with known temperature distribution along the boundary, 
+    #         and uniform heat generation rate inside.  Mesh of regular linear TRIANGLES,
+    #         in a grid of 1000 x 1000 edges (2M triangles, 1M degrees of freedom). 
+
+    #         With material orientation matrix supplied by a function.
+    #             """
+    #             )
+    t0 = time()
+
+    A= 1.0 # dimension of the domain (length of the side of the square)
+    thermal_conductivity= eye(2,2); # conductivity matrix
+    magn = -6.0; #heat source
+    tempf(x)=(1.0 + x[:,1].^2 + 2*x[:,2].^2);#the exact distribution of temperature
+    N=100;# number of subdivisions along the sides of the square domain
+    Rm=[-0.9917568452513019 -0.12813414805267656;    -0.12813414805267656 0.9917568452513019];
+    #Rm=[-0.8020689950104449 -0.5972313850116512;    -0.5972313850116512 0.8020689950104447];
+    function Rmfun!(XYZ::JFFltMat,tangents::JFFltMat,fe_label::JFInt)
+        return Rm
+    end
+
+    #println("Mesh generation")
+    fens,fes =T3block(A, A, N, N)
+
+    geom = NodalField(name ="geom",data =fens.xyz)
+    Temp = NodalField(name ="Temp",data =zeros(size(fens.xyz,1),1))
+
+    #println("Searching nodes  for BC")
+    l1 =fenodeselect(fens; box=[0. 0. 0. A], inflate = 1.0/N/100.0)
+    l2 =fenodeselect(fens; box=[A A 0. A], inflate = 1.0/N/100.0)
+    l3 =fenodeselect(fens; box=[0. A 0. 0.], inflate = 1.0/N/100.0)
+    l4 =fenodeselect(fens; box=[0. A A A], inflate = 1.0/N/100.0)
+    List=[l1, l2, l3, l4];
+    setebc!(Temp,List,trues(length(List)),List*0+1,tempf(geom.values[List,:])[:])
+    applyebc!(Temp)
+    numberdofs!(Temp)
+
+    t1 = time()
+
+    p=PropertyHeatDiffusion(thermal_conductivity)
+    material=MaterialHeatDiffusion (p)
+
+    femm = FEMMHeatDiffusion(FEMMBase(fes, TriRule(npts=1), Rmfun!), material)
+
+
+    #println("Conductivity")
+    K=conductivity(femm, geom, Temp)
+    #println("Nonzero EBC")
+    F2=nzebcloadsconductivity(femm, geom, Temp);
+    #println("Internal heat generation")
+    fi = ForceIntensity(magn);
+    F1=distribloads(femm.femmbase, geom, Temp, fi, 3);
+
+    #println("Factorization")
+    K=cholfact(K)
+    #println("Solution of the factorized system")
+    U=  K\(F1+F2)
+    scattersysvec!(Temp,U[:])
+
+    # println("Total time elapsed = $(time() - t0) [s]")
+    # println("Solution time elapsed = $(time() - t1) [s]")
+
+    Error= 0.0
+    for k=1:size(fens.xyz,1)
+        Error=Error+abs(Temp.values[k,1]-tempf(fens.xyz[k,:]))
+    end
+    @test Error[1]<0.000025
+    # println("Error =$Error")
+
+    # using MeshExportModule
+
+    # File =  "a.vtk"
+    # MeshExportModule.vtkexportmesh (File, fes.conn, [geom.values Temp.values], MeshExportModule.T3; scalars=Temp.values, scalars_name ="Temperature")
+
+end
+PoissonRm2();

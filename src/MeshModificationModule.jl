@@ -3,6 +3,8 @@ module MeshModificationModule
 using JFinEALE.JFFoundationModule
 using JFinEALE.FENodeSetModule
 using JFinEALE.FESetModule
+using Base.Sort
+using Base.Order
 
 function meshboundary{T<:FESet}(fes::T)
     # Extract the boundary finite elements from a mesh.
@@ -24,19 +26,92 @@ function meshboundary{T<:FESet}(fes::T)
 end
 export meshboundary
 
-function  myunique(A::JFIntMat) # this function is unnecessarily slow: reprogram the vectorization
-    maxA=maximum(A[:])
-    sA=sort(A,2);
-    sA= [sA (1:size(A,1))+maxA]
-    sA  = sortrows(sA);;
+function mysortrows(A::JFIntMat)
+    # Sort the rows of A by sorting each column from back to front.
+
+    m,n = size(A);
+    indx = (1:m); sindx = zeros(JFInt,m)
+    for c = n:-1:1
+        sortperm!(sindx,A[indx,c],alg=QuickSort);
+        indx = indx[sindx];
+    end
+    return A[indx,:]
+end
+
+function mysortdim2(A::JFIntMat)
+    # Sort the rows of A by sorting each column from back to front.
+
+    m,n = size(A);
+    r = zeros(JFInt,n)
+   @inbounds for k = 1:m
+        for m=1:n
+            r[m]=A[k,m]
+        end        
+        sort!(r);
+        for m=1:n
+            A[k,m]=r[m]
+        end
+    end
+    return A
+end
+
+function  myunique(A::JFIntMat) # speeded up; now the bottleneck is mysortrows
+    #println("size(A)=$(size(A))")
+    maxA=maximum(A[:])::JFInt
+    @time sA=mysortdim2(A)::JFIntMat;
+    #@time sA=sort(A,2,alg=QuickSort)::JFIntMat;
+    sA= [sA (1:size(A,1))+maxA]::JFIntMat
+    @time sA =mysortrows(sA)
+    #@time sA  = sortrows(sA,alg=QuickSort);;
     rix=sA[:,end]; rix=rix[:]-maxA;
     sA=sA[:,1:end-1];
-    d=(sA[1:end-1,:].!=sA[2:end,:]); # element-wise comparison!
-    ad=map((x) -> (x?1:0),[true; any(d,2)]);
-    iu =map((x) -> (x>1? true: false),(ad + [ad[2:end];1]));
-    Out =A[rix[iu[:]],:];
+    d=falses(size(sA,1)-1)
+    for k=1:length(d)
+        for m=1:size(sA,2)
+            if sA[k,m]!=sA[k+1,m]
+                d[k]=true;
+                break;
+            end
+        end        
+    end   
+    #d=(sA[1:end-1,:].!=sA[2:end,:]); # element-wise comparison!
+    ad=zeros(JFInt,size(d,1)+1)
+    ad[1]=1;
+    for k=2:length(ad)
+        for m=1:size(d,2)
+            if d[k-1,m]!=0
+                ad[k]=1;
+                break;
+            end
+        end        
+    end    
+    #ad=map((x) -> (x?1:0),[true; any(d,2)]);
+    iu=trues(length(ad))
+    for k=1:(length(ad)-1)
+        ad[k]=ad[k]+ad[k+1]
+        iu[k]=(ad[k]>1)
+    end
+    ad[end]=ad[end]+1;
+    iu[end]=(ad[end]>1)
+    #iu =map((x) -> (x>1? true: false),(ad + [ad[2:end];1]));
+    Out =A[rix[iu],:];
     return Out
 end
+
+### This code is correct, but very slow.
+# function  myunique(A::JFIntMat) # this function is unnecessarily slow: reprogram the vectorization
+#     maxA=maximum(A[:])
+#     sA=sort(A,2);
+#     sA= [sA (1:size(A,1))+maxA]
+#     sA  = sortrows(sA);;
+#     rix=sA[:,end]; rix=rix[:]-maxA;
+#     sA=sA[:,1:end-1];
+#     d=(sA[1:end-1,:].!=sA[2:end,:]); # element-wise comparison!
+#     ad=map((x) -> (x?1:0),[true; any(d,2)]);
+#     iu =map((x) -> (x>1? true: false),(ad + [ad[2:end];1]));
+#     Out =A[rix[iu[:]],:];
+#     return Out
+# end
 
 
 function fusenodes(fens1::FENodeSet, fens2::FENodeSet, tolerance:: JFFlt)
