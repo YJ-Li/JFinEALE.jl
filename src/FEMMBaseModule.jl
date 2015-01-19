@@ -286,7 +286,7 @@ function distribloads{S<:FESet,T<:Number,A<:SysvecAssemblerBase}(self::FEMMBase{
         for j=1:npts
             At_mul_B!(loc,Ns[j],x);# Quadrature points location
             At_mul_B!(J, x, gradNparams[j]); # calculate the Jacobian matrix 
-            Jac = FESetModule.Jacobianvolume(fes,conn, Ns[j], J, x);# Jacobian
+            Jac = FESetModule.Jacobianmdim(fes,conn, Ns[j], J, x, m);# Jacobian
             fi=updateforce!(fi,loc,J,getlabel(fes,i)); # retrieve the applied load
             Factor::JFFlt = (Jac * w[j]);
             rx::JFInt=1;

@@ -77,10 +77,12 @@ function  myunique2(A::JFIntMat) # speeded up; now the bottleneck is mysortrows
     #println("size(A)=$(size(A))")
     maxA=maximum(A[:])::JFInt
     sA=deepcopy(A)
-    @time sA=mysortdim2!(sA)::JFIntMat;#this is fast
+    #@time
+    sA=mysortdim2!(sA)::JFIntMat;#this is fast
     #@time sA=sort(A,2,alg=QuickSort)::JFIntMat;#this is slow
     sA= [sA (1:size(A,1))+maxA]::JFIntMat
-    @time sA =mysortrows(sA); # this now takes the majority of time, but much less than the function below
+    #@time
+    sA =mysortrows(sA); # this now takes the majority of time, but much less than the function below
     #@time sA  = sortrows(sA,alg=QuickSort);;#this is slow
     rix=sA[:,end]; rix=rix[:]-maxA;
     sA=sA[:,1:end-1];
