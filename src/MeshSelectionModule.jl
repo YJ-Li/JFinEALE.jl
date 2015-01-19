@@ -515,14 +515,22 @@ function vselect(v::JFFltMat; args...)
     #
 
     # Helper functions
-    inrange(range,x) = ((x>=range[1]) && (x<=range[2]));
-    function inbox(box,x)
-        dim=length (box)/2;
-        b=inrange (box[1:2],x[1]);
-        for i=2:dim
-            b=(b && inrange (box[2*i-1:2*i],x[i]));
+    inrange(rangelo::JFFlt,rangehi::JFFlt,x::JFFlt) = ((x>=rangelo) && (x<=rangehi));
+    function inbox(box::JFFltMat,sdim::JFInt,x::JFFltMat)
+        for i=1:sdim
+            if (!inrange(box[2*i-1],box[2*i],x[i]))
+                return false
+            end
         end
-        return b
+        return true
+    end
+    function inbox(box::JFFltVec,sdim::JFInt,x::JFFltMat)
+        for i=1:sdim
+            if (!inrange(box[2*i-1],box[2*i],x[i]))
+                return false
+            end
+        end
+        return true
     end
 
     # Extract arguments
@@ -558,7 +566,7 @@ function vselect(v::JFFltMat; args...)
 
     # Process the different options
     if box!=nothing
-        dim=length(box)/2.;
+        dim=int(length(box)/2.)::JFInt;
         if dim!= size(v,2)
             error("Dimension of box not matched to dimension of array of vertices")
         end
@@ -567,8 +575,9 @@ function vselect(v::JFFltMat; args...)
             abox[2*i-1]=min(box[2*i-1],box[2*i])- inflatevalue;
             abox[2*i]=max(box[2*i-1],box[2*i])+ inflatevalue;
         end
+        show(typeof(dim))
         for i=1:size(v,1)
-            if inbox (abox,v[i,:])
+            if inbox (abox,dim,v[i,:])
                 nn =nn +1; vlist[nn] =i;
             end
         end
