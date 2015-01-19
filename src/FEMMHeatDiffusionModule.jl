@@ -2,6 +2,7 @@ module FEMMHeatDiffusionModule
 
 using JFinEALE.JFFoundationModule
 using JFinEALE.FESetModule
+using JFinEALE.MaterialOrientationModule
 using JFinEALE.FEMMBaseModule
 using JFinEALE.NodalFieldModule
 using JFinEALE.ForceIntensityModule
@@ -41,7 +42,7 @@ function conductivity{S<:FESet,A<:SysmatAssemblerBase}(self::FEMMHeatDiffusion{S
     # Constants
     const nfes::JFInt=count(fes); # number of finite elements in the set
     const ndn::JFInt= ndofn(temp); # number of degrees of freedom per node
-    const nne::JFInt =nfense(fes); # number of nodes for element
+    const nne::JFInt =nfensperfe(fes); # number of nodes for element
     const sdim::JFInt = ndofn(geom);            # number of space dimensions
     const mdim::JFInt= manifdim(fes); # manifold dimension of the element
     const Kedim::JFInt =ndn*nne;             # dimension of the element matrix
@@ -51,11 +52,6 @@ function conductivity{S<:FESet,A<:SysmatAssemblerBase}(self::FEMMHeatDiffusion{S
     # Note that the thermal conductivity matrix is in the
     # local  material orientation coordinates.
     kappa_bar =  self.material.property.thermal_conductivity;
-    # Prepare some data:
-    labels=fes.label; # individual element labels
-    if length(fes.label)==0
-        labels=zeros(JFInt,nfes);
-    end
     # Prepare assembler and temporaries
     Ke::JFFltMat =zeros(JFFlt,Kedim,Kedim);                # element matrix -- used as a buffer
     conn::JFIntMat=zeros(JFInt,nne,1); # element nodes -- used as a buffer
@@ -74,8 +70,8 @@ function conductivity{S<:FESet,A<:SysmatAssemblerBase}(self::FEMMHeatDiffusion{S
             At_mul_B!(loc,Ns[j],x);# Quadrature points location
             At_mul_B!(J, x, gradNparams[j]); # calculate the Jacobian matrix 
             Jac = FESetModule.Jacobianvolume(fes,conn, Ns[j], J, x);# Jacobian
-            updateRm!(self.femmbase,loc,J,labels[i]); # Material orientation matrix
-            At_mul_B!(RmTJ, self.femmbase.Rm, J); # local Jacobian matrix 
+            updateRm!(self.femmbase.mo,loc,J,getlabel(fes,i)); # Material orientation matrix
+            At_mul_B!(RmTJ, self.femmbase.mo.Rm, J); # local Jacobian matrix 
             # gradient WRT material coordinates
             FESetModule.gradN!(fes,gradN,gradNparams[j],RmTJ);#Do: gradN = gradNparams[j]/RmTJ;
             for nx=1:Kedim # Do: Ke = Ke + gradN*(kappa_bar*(Jac*w[j]))*gradN' ;
@@ -119,7 +115,7 @@ function nzebcloadsconductivity{S<:FESet,A<:SysvecAssemblerBase}(self::FEMMHeatD
     # Constants
     const nfes::JFInt=count(fes); # number of finite elements in the set
     const ndn::JFInt= ndofn(temp); # number of degrees of freedom per node
-    const nne::JFInt =nfense(fes); # number of nodes for element
+    const nne::JFInt =nfensperfe(fes); # number of nodes for element
     const sdim::JFInt = ndofn(geom);            # number of space dimensions
     const mdim::JFInt= manifdim(fes); # manifold dimension of the element
     const Kedim::JFInt =ndn*nne;             # dimension of the element matrix
@@ -129,11 +125,6 @@ function nzebcloadsconductivity{S<:FESet,A<:SysvecAssemblerBase}(self::FEMMHeatD
     # Note that the thermal conductivity matrix is in the
     # local  material orientation coordinates.
     kappa_bar =  self.material.property.thermal_conductivity;
-    # Prepare some data:
-    labels=fes.label; # individual element labels
-    if length(fes.label)==0
-        labels=zeros(JFInt,nfes);
-    end
     # Prepare assembler and temporaries
     Ke::JFFltMat =zeros(JFFlt,Kedim,Kedim);                # element matrix -- used as a buffer
     conn::JFIntMat=zeros(JFInt,nne,1); # element nodes -- used as a buffer
@@ -156,8 +147,8 @@ function nzebcloadsconductivity{S<:FESet,A<:SysvecAssemblerBase}(self::FEMMHeatD
                 At_mul_B!(loc,Ns[j],x);# Quadrature points location
                 At_mul_B!(J, x, gradNparams[j]); # calculate the Jacobian matrix 
                 Jac = FESetModule.Jacobianvolume(fes,conn, Ns[j], J, x);# Jacobian
-                updateRm!(self.femmbase,loc,J,labels[i]); # Material orientation matrix 
-                At_mul_B!(RmTJ, self.femmbase.Rm, J); # local Jacobian matrix 
+                updateRm!(self.femmbase.mo,loc,J,getlabel(fes,i)); # Material orientation matrix 
+                At_mul_B!(RmTJ, self.femmbase.mo.Rm, J); # local Jacobian matrix 
                 # gradient WRT material coordinates
                 FESetModule.gradN!(fes,gradN,gradNparams[j],RmTJ);#Do: gradN = gradNparams[j]/RmTJ;
                 for nx=1:Kedim # Do: Ke = Ke + gradN*(kappa_bar*(Jac*w[j]))*gradN' ;

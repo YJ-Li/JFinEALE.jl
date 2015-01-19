@@ -6,6 +6,7 @@ using JFinEALE.NodalFieldModule
 using JFinEALE.ForceIntensityModule
 using JFinEALE.PropertyHeatDiffusionModule
 using JFinEALE.MaterialHeatDiffusionModule
+using JFinEALE.MaterialOrientationModule
 using JFinEALE.FEMMBaseModule
 using JFinEALE.FEMMHeatDiffusionModule
 
@@ -140,7 +141,7 @@ function steadystate(modeldata::ModelDataDictionary)
             conductivity=get(()->error("Must get conductivity!"), region[i], "conductivity");
             prop=PropertyHeatDiffusion(conductivity,0.0)
             mater=MaterialHeatDiffusion (prop);
-            Rm=get(region[i], "Rm", nothing);
+            Rm=get(region[i], "Rm", MaterialOrientation());
             # This is the model object for the current region: note that we supply 
             # integration  rule and the  material orientation matrix
             fes=get(()->error("Must get finite elements!"), region[i], "fes");
@@ -188,7 +189,7 @@ function steadystate(modeldata::ModelDataDictionary)
         K = K + conductivity(femm, geom, temp);
         Q=get(region[i], "Q", [0.0]);
         if (typeof(Q)==Function)
-            fi = ForceIntensity(zeros(JFFlt,1,1),Q);
+            fi = ForceIntensity(JFFlt,Q);
         else
             fi = ForceIntensity(Q);
         end

@@ -43,7 +43,7 @@ function acousticmass{S<:FESet,T<:Number,A<:SysmatAssemblerBase}(self::FEMMAcous
     # Constants
     const nfes::JFInt= count(fes); # number of finite elements in the set
     const ndn::JFInt= ndofn(P); # number of degrees of freedom per node
-    const nne::JFInt = nfense(fes); # number of nodes per element
+    const nne::JFInt = nfensperfe(fes); # number of nodes per element
     const sdim::JFInt = ndofn(geom);            # number of space dimensions
     const mdim::JFInt= manifdim(fes);     # manifold dimension of the element
     const Cedim::JFInt =ndn*nne;                          # dimension of the element matrix
@@ -117,17 +117,12 @@ function nzebcloadsacousticmass{S<:FESet,T<:Number,A<:SysvecAssemblerBase}(self:
     # Constants
     const nfes::JFInt= count(fes); # number of finite elements in the set
     const ndn::JFInt= ndofn(P); # number of degrees of freedom per node
-    const nne::JFInt = nfense(fes); # number of nodes per element
+    const nne::JFInt = nfensperfe(fes); # number of nodes per element
     const sdim::JFInt = ndofn(geom);            # number of space dimensions
     const mdim::JFInt= mdim(fes);     # manifold dimension of the element
     const Cedim::JFInt =ndn*nne;                          # dimension of the element matrix
     # Precompute basis f. values + basis f. gradients wrt parametric coor
     npts, Ns, gradNparams, w, pc = FEMMBaseModule.integrationdata(self.femmbase);
-    # Prepare some data:
-    labels=fes.label; # individual element labels
-    if length(fes.label)==0
-        labels=zeros(JFInt,nfes);
-    end
     # Prepare assembler and temporaries
     Ce::JFFltMat =zeros(JFFlt,Cedim,Cedim);                # element matrix -- used as a buffer
     conn::JFIntMat=zeros(JFInt,nne,1); # element nodes -- used as a buffer
@@ -198,7 +193,7 @@ function acousticstiffness{S<:FESet,T<:Number,A<:SysmatAssemblerBase}(self::FEMM
     # Constants
     const nfes::JFInt= count(fes); # number of finite elements in the set
     const ndn::JFInt= ndofn(Pddot); # number of degrees of freedom per node
-    const nne::JFInt = nfense(fes); # number of nodes per element
+    const nne::JFInt = nfensperfe(fes); # number of nodes per element
     const sdim::JFInt = ndofn(geom);            # number of space dimensions
     const mdim::JFInt= manifdim(fes);     # manifold dimension of the element
     const Sedim::JFInt = ndn*nne;               # dimension of the element matrix
@@ -209,11 +204,6 @@ function acousticstiffness{S<:FESet,T<:Number,A<:SysmatAssemblerBase}(self::FEMM
     mass_density =  self.material.property.mass_density;
     c = sqrt(bulk_modulus/mass_density); # sound speed
     oc2=1.0/c^2;
-    # Prepare some data:
-    labels=fes.label; # individual element labels
-    if length(fes.label)==0
-        labels=zeros(JFInt,nfes);
-    end
     # Prepare assembler and temporaries
     Se::JFFltMat =zeros(JFFlt,Sedim,Sedim);                # element matrix -- used as a buffer
     conn::JFIntMat=zeros(JFInt,nne,1); # element nodes -- used as a buffer
@@ -268,7 +258,7 @@ function nzebcloadsacousticstiffness{S<:FESet,T<:Number,A<:SysvecAssemblerBase}(
     # Constants
     const nfes::JFInt= count(fes); # number of finite elements in the set
     const ndn::JFInt= ndofn(Pddot); # number of degrees of freedom per node
-    const nne::JFInt = nfense(fes); # number of nodes per element
+    const nne::JFInt = nfensperfe(fes); # number of nodes per element
     const sdim::JFInt = ndofn(geom);            # number of space dimensions
     const mdim::JFInt= manifdim(fes);     # manifold dimension of the element
     const Sedim::JFInt =ndn*nne;                          # dimension of the element matrix
@@ -278,11 +268,6 @@ function nzebcloadsacousticstiffness{S<:FESet,T<:Number,A<:SysvecAssemblerBase}(
     bulk_modulus =  self.material.property.bulk_modulus;
     mass_density =  self.material.property.mass_density;
     c = sqrt(bulk_modulus/mass_density); # sound speed
-    # Prepare some data:
-    labels=fes.label; # individual element labels
-    if length(fes.label)==0
-        labels=zeros(JFInt,nfens);
-    end
     # Prepare assembler and temporaries
     Se::JFFltMat =zeros(JFFlt,Sedim,Sedim);                # element matrix -- used as a buffer
     conn::JFIntMat=zeros(JFInt,nne,1); # element nodes -- used as a buffer
@@ -343,7 +328,7 @@ function acousticABC{S<:FESet,T<:Number,A<:SysmatAssemblerBase}(self::FEMMAcoust
     # Constants
     const nfes::JFInt= count(fes); # number of finite elements in the set
     const ndn::JFInt= ndofn(Pdot); # number of degrees of freedom per node
-    const nne::JFInt = nfense(fes); # number of nodes per element
+    const nne::JFInt = nfensperfe(fes); # number of nodes per element
     const sdim::JFInt = ndofn(geom);            # number of space dimensions
     const mdim::JFInt= manifdim(fes);     # manifold dimension of the element
     const Dedim::JFInt =ndn*nne;                          # dimension of the element matrix
@@ -357,11 +342,6 @@ function acousticABC{S<:FESet,T<:Number,A<:SysmatAssemblerBase}(self::FEMMAcoust
     bulk_modulus =  self.material.property.bulk_modulus;
     mass_density =  self.material.property.mass_density;
     c = sqrt(bulk_modulus/mass_density); # sound speed
-    # Prepare some data:
-    labels=fes.label; # individual element labels
-    if length(fes.label)==0
-        labels=zeros(JFInt,nfes);
-    end
     # Prepare assembler and temporaries
     De::JFFltMat =zeros(JFFlt,Dedim,Dedim);                # element matrix -- used as a buffer
     conn::JFIntMat=zeros(JFInt,nne,1); # element nodes -- used as a buffer

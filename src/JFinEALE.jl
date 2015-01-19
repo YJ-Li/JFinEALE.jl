@@ -21,12 +21,18 @@ include("RotationUtilModule.jl")
 using JFinEALE.RotationUtilModule
 export rotmat, skewmat!, cross
 
+include("MaterialOrientationModule.jl") 
+using JFinEALE.MaterialOrientationModule
+export MaterialOrientation
+export updateRm!
+
 include("FESetModule.jl")
 using JFinEALE.FESetModule
 export FESet, FESet0Manifold, FESet1Manifold, FESet2Manifold, FESet3Manifold
 export manifdim
-export nfense
+export nfensperfe
 export count
+export getlabel
 export getconn!
 export setotherdimension!
 export setlabel!

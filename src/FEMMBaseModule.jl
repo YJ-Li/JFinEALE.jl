@@ -6,23 +6,11 @@ using JFinEALE.IntegRuleModule
 using JFinEALE.NodalFieldModule
 using JFinEALE.ForceIntensityModule
 using JFinEALE.AssemblyModule
+using JFinEALE.MaterialOrientationModule
 
 #     % Base class for all finite element models
 #     % from which more specialized (heat diffusion, elasticity,...) finite
 #     % element model classes are derived.
-
-type FEMMBase{T<:FESet}
-    fes::T # finite element set object
-    integration_rule::IntegRule  # integration rule object
-    updateRm::Function # function to update the material orientation matrix
-    Rm::JFFltMat # the material orientation matrix (buffer)
-    fen2fe_map  # map from finite element nodes to connected finite elements
-end
-export FEMMBase
-
-function  FEMMBase{T<:FESet} (fes::T,
-                    integration_rule::IntegRule,
-                    Rm = nothing)
 #  Parameters:
 #   mandatory:
 #       fes = finite element set.  The type of the FE set will be dependent upon
@@ -52,101 +40,32 @@ function  FEMMBase{T<:FESet} (fes::T,
 #                  as columns,
     #          label= the label of the finite element in which the point XYZ resides
 
-    # The material orientation matrix function is a stand-in: it is going to get replaced below
-    self=  FEMMBase (deepcopy(fes), deepcopy(integration_rule), (x,y,z)->  1.0, Array(Float64,0,0), nothing)
-    setupdateRm!(self,Rm)
+type FEMMBase{T<:FESet}
+    fes::T # finite element set object
+    integration_rule::IntegRule  # integration rule object
+    mo::MaterialOrientation # updater of the material orientation matrix
+    fen2fe_map  # map from finite element nodes to connected finite elements
+    
+    function  FEMMBase (fes,
+                        integration_rule,
+                        mo)
+        return  new (deepcopy(fes), deepcopy(integration_rule), mo)
+    end
+
+end
+export FEMMBase
+
+# Construct with the user-defined orientation matrix updater.
+function  FEMMBase{T<:FESet} (fes::T,
+                              integration_rule::IntegRule,
+                              mo::MaterialOrientation)
+    self=  FEMMBase{T} (fes, integration_rule, mo)
 end
 
-function setupdateRm!(self::FEMMBase,Rm= nothing)
-    # Set the material orientation matrix.
-    if Rm != nothing
-        if typeof(Rm)== Function
-            function g!(Rmout::JFFltMat, XYZ::JFFltMat,tangents::JFFltMat,fe_label::JFInt)
-                r=Rm(XYZ, tangents, fe_label)::JFFltMat
-                copy!(Rmout,r)
-            end
-        elseif typeof(Rm)== JFFltMat
-            self.Rm=deepcopy(Rm); # this is the value of the orientation matrix, simply save it
-            function g!(Rmout::JFFltMat, XYZ::JFFltMat,tangents::JFFltMat,fe_label::JFInt)
-                # and then there's nothing to do inside this function
-            end
-            if norm(Rm'*Rm-eye(size(Rm, 2)))>1e-9
-                error("Non-orthogonal material orientation matrix!");
-            end
-        else
-            function g!(Rmout::JFFltMat, XYZ::JFFltMat,tangents::JFFltMat,fe_label::JFInt)
-                # dummy function: we shouldn't get here except by error
-            end
-            error("Cannot handle class of Rm: " * string(typeof(Rm)))
-        end
-    else   # identity is the default 
-        function g!(Rmout::JFFltMat, XYZ::JFFltMat,tangents::JFFltMat,fe_label::JFInt)
-            # nothing to be done: the work is performed in updateRm!
-        end
-    end
-    self.updateRm= g!;
-    return self
-end
-export setRm!
-
-function updateRm!(self::FEMMBase,XYZ::JFFltMat,tangents::JFFltMat,fe_label::JFInt)
-    # Update the material orientation matrix.
-    # It can now be retrieved from the buffer (self.Rm).
-    if (length(self.Rm)== 0) # If the buffer is not initialized yet
-        self.Rm = zeros(size(XYZ,2),size(tangents,2)); # space dimension, manifold dimension
-        fill!(self.Rm,0.0)
-        for i=1:size(self.Rm,2)
-            self.Rm[i,i]= 1.0
-        end            
-    end
-    self.updateRm(self.Rm, XYZ,tangents,fe_label)
-    return self
-end
-export updateRm!
-
-function genisoRm(XYZ::JFFltMat,tangents::JFFltMat,fe_label::JFInt)
-    #  Material orientation matrix for isotropic materials.
-    # 
-    #  function Rm = geniso_Rm(XYZ,tangents,fe_label)
-    # 
-    #  XYZ = location at which the material directions are needed
-    #  tangents = tangent vectors to parametric coordinates in columns
-    #  fe_label= label of the finite element
-    # 
-    #  The basic assumption here is that the material is isotropic, and
-    #  therefore the choice of the material directions does not really matter as
-    #  long as they correspond to the dimensionality of the element. For
-    #  instance a one-dimensional element (L2 as an example) may be embedded
-    #  in a three-dimensional space.
-    # 
-    #  This function assumes that it is being called for
-    #  an ntan-dimensional manifold element, which is embedded in a
-    #  sdim-dimensional Euclidean space. If ntan == sdim,
-    #  the material directions matrix is the identity; otherwise the local
-    #  material directions are aligned with the linear subspace defined by the
-    #  tangent vectors.
-    # 
-    #  Warning: this *cannot* be reliably used to produce consistent stresses
-    #  because each quadrature point gets a local coordinate system which
-    #  depends on the orientation of the element.
-    # 
-    sdim, ntan = size(tangents);
-    if sdim==ntan
-        Rm=eye(sdim);
-    else
-        e1=tangents[:,1]/norm(tangents[:,1]);
-        if ntan==1
-            Rm = [e1];
-        elseif ntan==2
-            n =skewmat(e1)*tangents(:,2)/norm(tangents(:,2));
-            e2=skewmat(n)*e1;
-            e2=e2/norm(e2);
-            Rm = [e1,e2];
-        else
-            error("Got an incorrect size of tangents");
-        end
-        return Rm
-    end
+# Construct with the default orientation matrix updater.
+function  FEMMBase{T<:FESet} (fes::T,
+                    integration_rule::IntegRule)
+    self=  FEMMBase{T} (fes, integration_rule, MaterialOrientation())
 end
 
 #  Associated geometry field. Default is there is none, so any
@@ -208,7 +127,7 @@ function integratefieldfunction{T<:Number,R} (self::FEMMBase,
     # Constants
     const nfes::JFInt= count(fes); # number of finite elements in the set
     const ndn::JFInt= ndofn(afield); # number of degrees of freedom per node
-    const nne::JFInt = nfense(fes); # number of nodes per element
+    const nne::JFInt = nfensperfe(fes); # number of nodes per element
     const sdim::JFInt = ndofn(geom);            # number of space dimensions
     const mdim::JFInt= manifdim(fes);     # manifold dimension of the element
     # Precompute basis f. values + basis f. gradients wrt parametric coor
@@ -274,7 +193,7 @@ function integratefunction (self, geom, fh, varargin)
     # Constants
     const nfes::JFInt= count(fes); # number of finite elements in the set
     const ndn::JFInt= ndofn(P); # number of degrees of freedom per node
-    const nne::JFInt = nfense(fes); # number of nodes per element
+    const nne::JFInt = nfensperfe(fes); # number of nodes per element
     const sdim::JFInt = ndofn(geom);            # number of space dimensions
     const mdim::JFInt= manifdim(fes);     # manifold dimension of the element
     # Precompute basis f. values + basis f. gradients wrt parametric coor
@@ -346,7 +265,7 @@ function distribloads{S<:FESet,T<:Number,A<:SysvecAssemblerBase}(self::FEMMBase{
     # Constants
     const nfes::JFInt= count(fes); # number of finite elements in the set
     const ndn::JFInt= ndofn(P); # number of degrees of freedom per node
-    const nne::JFInt = nfense(fes); # number of nodes per element
+    const nne::JFInt = nfensperfe(fes); # number of nodes per element
     const sdim::JFInt = ndofn(geom);            # number of space dimensions
     const mdim::JFInt= manifdim(fes);     # manifold dimension of the element
     const Cedim::JFInt =ndn*nne;                          # dimension of the element matrix
@@ -368,7 +287,7 @@ function distribloads{S<:FESet,T<:Number,A<:SysvecAssemblerBase}(self::FEMMBase{
             At_mul_B!(loc,Ns[j],x);# Quadrature points location
             At_mul_B!(J, x, gradNparams[j]); # calculate the Jacobian matrix 
             Jac = FESetModule.Jacobianvolume(fes,conn, Ns[j], J, x);# Jacobian
-            fi=getforce!(fi,loc,J); # retrieve the applied load
+            fi=updateforce!(fi,loc,J,getlabel(fes,i)); # retrieve the applied load
             Factor::JFFlt = (Jac * w[j]);
             rx::JFInt=1;
             for kx=1:nne # all the nodes

@@ -7,7 +7,7 @@ function Poisson1()
 
     A= 1.0 # dimension of the domain (length of the side of the square)
     thermal_conductivity= eye(2,2); # conductivity matrix
-    magn = -6.0; #heat source
+    magn = reshape([-6.0],1,1); #heat source
     tempf(x)=(1.0 + x[:,1].^2 + 2*x[:,2].^2);#the exact distribution of temperature
     N=100;# number of subdivisions along the sides of the square domain.  Note that for the test problem N=1000.
 
@@ -229,7 +229,7 @@ function Poisson_FE_example_algo()
 
     A= 1.0
     thermal_conductivity=eye(2,2); # conductivity matrix
-    magn = -6.0; #heat source
+    magn = reshape([-6.0],1,1); #heat source
     boundaryf(x)=1.0 + x[:,1].^2 + 2.0*x[:,2].^2;
     N=20;
 
@@ -259,7 +259,7 @@ function Poisson_FE_example_algo()
     # Make model data
     modeldata= dmake(fens= fens,
                      region=[dmake(conductivity=thermal_conductivity,
-                                   Q=(x,J)->[magn],fes=fes,integration_rule=TriRule(npts=1))],
+                                   Q=(x,J,l)->magn,fes=fes,integration_rule=TriRule(npts=1))],
                      boundary_conditions=dmake(essential=[essential1]));
 
 
@@ -312,7 +312,7 @@ function PoissonRm2()
     N=100;# number of subdivisions along the sides of the square domain
     Rm=[-0.9917568452513019 -0.12813414805267656;    -0.12813414805267656 0.9917568452513019];
     #Rm=[-0.8020689950104449 -0.5972313850116512;    -0.5972313850116512 0.8020689950104447];
-    function Rmfun!(XYZ::JFFltMat,tangents::JFFltMat,fe_label::JFInt)
+    function Rmfun(XYZ::JFFltMat,tangents::JFFltMat,fe_label::JFInt)
         return Rm
     end
 
@@ -337,7 +337,7 @@ function PoissonRm2()
     p=PropertyHeatDiffusion(thermal_conductivity)
     material=MaterialHeatDiffusion (p)
 
-    femm = FEMMHeatDiffusion(FEMMBase(fes, TriRule(npts=1), Rmfun!), material)
+    femm = FEMMHeatDiffusion(FEMMBase(fes, TriRule(npts=1), MaterialOrientation(Rmfun)), material)
 
 
     #println("Conductivity")
