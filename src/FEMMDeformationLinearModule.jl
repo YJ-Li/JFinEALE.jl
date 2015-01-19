@@ -96,6 +96,93 @@ end
 export stiffness
 
 
+function nzebcloadsstiffness{MR<:DeformationModelReduction,
+    S<:FESet}(::Type{MR},self::FEMMDeformationLinear{S}, 
+              geom::NodalField{JFFlt},
+              u::NodalField{JFFlt})
+    assembler = SysvecAssembler()
+    return  nzebcloadsstiffness(self,assembler,geom,u);
+end
+export nzebcloadsstiffness
+
+function nzebcloadsstiffness{MR<:DeformationModelReduction,
+    S<:FESet,A<:SysmatAssemblerBase}(::Type{MR},self::FEMMDeformationLinear{S}, assembler::A,
+                                     geom::NodalField{JFFlt},
+                                     u::NodalField{JFFlt})
+    #  Compute load vector for nonzero EBC for fixed temperature.
+    # 
+    # %    Arguments
+    # %      assembler =  descendent of sysvec_assembler
+    # %      geom=geometry field
+    # %      temp=temperature field
+    # %
+    # % Return the assembled system vector F.
+
+    fes=self.femmbase.fes;                       # the finite element set
+    # Constants
+    const nfes::JFInt=count(fes); # number of finite elements in the set
+    const ndn::JFInt= ndofn(u); # number of degrees of freedom per node
+    const nne::JFInt =nfense(fes); # number of nodes for element
+    const sdim::JFInt = ndofn(geom);            # number of space dimensions
+    const mdim::JFInt= manifdim(fes); # manifold dimension of the element
+    const nstr::JFInt =nstrains(MR);  # number of strains
+    const Kedim::JFInt =ndn*nne;             # dimension of the element matrix
+    # Precompute basis f. values + basis f. gradients wrt parametric coor
+    npts, Ns, gradNparams, w, pc = integrationdata(self.femmbase);
+    # Prepare some data:
+    labels=fes.label; # individual element labels
+    if length(fes.label)==0
+        labels=zeros(JFInt,nfes);
+    end
+    # Prepare assembler and temporaries
+    Ke::JFFltMat =zeros(JFFlt,Kedim,Kedim);                # element matrix -- used as a buffer
+    conn::JFIntMat=zeros(JFInt,nne,1); # element nodes -- used as a buffer
+    x::JFFltMat =zeros(JFFlt,nne,sdim); # array of node coordinates -- used as a buffer
+    dofnums::JFIntMat=zeros(JFInt,1,Kedim); # degree of freedom array -- used as a buffer
+    loc::JFFltMat =zeros(JFFlt,1,sdim); # quadrature point location -- used as a buffer
+    Rm::JFFltMat=eye(JFFlt,sdim,mdim); # material orientation matrix -- used as a buffer
+    J::JFFltMat =eye(JFFlt,sdim,mdim); # Jacobian matrix -- used as a buffer
+    RmTJ::JFFltMat =zeros(JFFlt,mdim,mdim); # intermediate result -- used as a buffer
+    gradN::JFFltMat =zeros(JFFlt,nne,mdim); # intermediate result -- used as a buffer
+    D::JFFltMat =zeros(JFFlt,nstr,nstr); # material stiffness matrix -- used as a buffer
+    B::JFFltMat =zeros(JFFlt,nstr,Kedim); # strain-displacement matrix -- used as a buffer
+    tangentmoduli!(MR,self.material,D;loc=[0.0]);# Moduli in material orientation
+    startassembly!(assembler, Kedim, Kedim, nfes, u.nfreedofs, u.nfreedofs);
+    for i=1:nfes # Loop over elements
+        getconn!(fes,conn,i);
+        gathervaluesasmat!(u,pu,conn);# retrieve element displacement vector
+        if norm(pu) != 0     # Is the load nonzero?
+            gathervaluesasmat!(geom,x,conn);# retrieve element coordinates
+            fill!(Ke, 0.0); # Initialize element matrix
+            for j=1:npts # Loop over quadrature points 
+                At_mul_B!(loc,Ns[j],x);# Quadrature points location
+                At_mul_B!(J, x, gradNparams[j]); # calculate the Jacobian matrix 
+                Jac = FESetModule.Jacobianvolume(fes,conn, Ns[j], J, x);# Jacobian
+                updateRm!(self.femmbase,loc,J,labels[i]); # Material orientation matrix 
+                At_mul_B!(RmTJ, self.femmbase.Rm, J); # local Jacobian matrix 
+                # gradient WRT material coordinates
+                FESetModule.gradN!(fes,gradN,gradNparams[j],RmTJ);#Do: gradN = gradNparams[j]/RmTJ;
+                Blmat!(MR,B,Ns[j],gradN,loc,Rm);#  strains in material cs, displacements in global cs
+                #tangentmoduli!(MR,mat,D,loc);# Moduli in material orientation
+                for nx=1:Kedim # Do: Ke = Ke + (B'*(D*(Jac*w[j]))*B); 
+                    for kx=1:nstr
+                        for px=1:nstr
+                            for mx=1:Kedim
+                                Ke[mx,nx] = Ke[mx,nx] + B[px,mx]*((Jac*w[j])*D[px,kx])*B[kx,nx]
+                            end
+                        end
+                    end
+                end
+            end # Loop over quadrature points
+            gatherdofnumsasvec!(temp,dofnums,conn); # retrieve degrees of freedom
+            assemble!(assembler, -Ke*pu, dofnums); # assemble element load vector
+        end
+    end # Loop over elements
+    F= makevector!(assembler);
+    return F
+end
+export nzebcloadsstiffness
+
 function mass{MR<:DeformationModelReduction,
     S<:FESet}(::Type{MR},self::FEMMDeformationLinear{S}, 
               geom::NodalField{JFFlt}, u::NodalField{JFFlt})

@@ -44,7 +44,7 @@ function mysortrows(A::JFIntMat)
         #Sorting a column vector is much faster than sorting a column matrix
         sindx=sortperm(col,alg=QuickSort);
         #sortperm!(sindx,col,alg=QuickSort); # available for 0.4, slightly faster
-        #indx=indx[sindx] # saving allocations below
+        #indx=indx[sindx] # saving allocations by using the below loops
         for i=1:m
             nindx[i]=indx[sindx[i]]
         end
