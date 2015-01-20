@@ -575,7 +575,6 @@ function vselect(v::JFFltMat; args...)
             abox[2*i-1]=min(box[2*i-1],box[2*i])- inflatevalue;
             abox[2*i]=max(box[2*i-1],box[2*i])+ inflatevalue;
         end
-        show(typeof(dim))
         for i=1:size(v,1)
             if inbox (abox,dim,v[i,:])
                 nn =nn +1; vlist[nn] =i;

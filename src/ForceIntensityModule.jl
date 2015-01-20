@@ -24,9 +24,9 @@ export ForceIntensity
 function ForceIntensity{T<:Number}(::Type{T},computeforce::Function)
     force= Array(T,0,0);       # Empty buffer, needs to be allocated on the first call
     function g!(forceout::JFMat{T}, XYZ::JFFltMat,tangents::JFFltMat,fe_label::JFInt)
-        r=computeforce(XYZ, tangents, fe_label)::JFFltMat
+        r=computeforce(XYZ, tangents, fe_label)::JFMat{T}
         if (length(forceout)== 0) # If the buffer is not initialized yet
-            forceout = zeros(size(r)); 
+            forceout = zeros(T,size(r)); 
         end
         copy!(forceout,r)
         return forceout
