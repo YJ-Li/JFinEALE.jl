@@ -25,7 +25,7 @@ Pkg.test("JFinEALE")
 
 ## Usage
 
-The examples are available in their own repository. It is not a Julia package.
+The examples are available in their own repository (https://github.com/PetrKryslUCSD/JFinEALEexamples). It is not a Julia package.
 In case you were wondering: Julia packages live in the .julia folder, whereas
 the examples can be anywhere in your directory tree.
 
