@@ -22,3 +22,11 @@ Pkg.clone("https://github.com/PetrKryslUCSD/JFinEALE.jl")
 
 Pkg.test("JFinEALE")
 [![Build Status](https://travis-ci.org/PetrKryslUCSD/JFinEALE.jl.png)](https://travis-ci.org/PetrKryslUCSD/JFinEALE.jl)
+
+## Usage
+
+The examples are available in their own repository. It is not a Julia package.
+In case you were wondering: Julia packages live in the .julia folder, whereas
+the examples can be anywhere in your directory tree.
+
+To run an example, "include" it (after using JFinEALE).
