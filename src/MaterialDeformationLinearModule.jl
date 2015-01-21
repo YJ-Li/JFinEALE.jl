@@ -13,19 +13,15 @@ using JFinEALE.PropertyDeformationLinearIsoModule
 
 type  MaterialDeformationLinear{P<:PropertyDeformationLinear}
     property::P
-    bufferedD::JFFltMat
 end
 export MaterialDeformationLinear
-
-function MaterialDeformationLinear{P<:PropertyDeformationLinear}(property::P)
-    MaterialDeformationLinear(property,zeros(JFFlt,6,6));
-end
 
 
 ################################################################################
 # 3-D solid model
 
-function tangentmoduli!{P<:PropertyDeformationLinear}(::Type{DeformationModelReduction3D},
+function tangentmoduli!{P<:PropertyDeformationLinear,
+    MR<:DeformationModelReduction3D}(::Type{MR},
                         self::MaterialDeformationLinear{P}, 
                         D::JFFltMat; context...)
     # # Calculate the material stiffness matrix.
@@ -39,11 +35,12 @@ function tangentmoduli!{P<:PropertyDeformationLinear}(::Type{DeformationModelRed
     # #     D=matrix 6x6 in the local material orientation Cartesian basis
     # #
     # #
-    tangentmoduli!(self.property, D; context...);
+    tangentmoduli3d!(self.property, D; context...);
+    return D
 end
 export tangentmoduli!
 
-function update! (::Type{DeformationModelReduction3D},
+function update!{MR<:DeformationModelReduction3D}(::Type{MR},
                         self::MaterialDeformationLinear, ms; context...)
 # Update material state.
 #
@@ -90,9 +87,10 @@ function update! (::Type{DeformationModelReduction3D},
 # else# This is an approximation valid only for small displacements
 #     gradu=context.F-eye(3);
 #     Ev = strain_3x3t_to_6v (self,(gradu+gradu')/2);
-# end
-    tangentmoduli!(self, self.bufferedD; context...);# local material stiffness
-    tSigma = thermalstress(self; context...);# stress in local coordinates
+    # end
+    D=zeros(JFFlt,6,6)
+    tangentmoduli!(MR, self, D; context...);# local material stiffness
+    tSigma = thermalstress(MR, self; context...);# stress in local coordinates
     stress = D * Ev + tSigma;
     # if isfield(context,'output')
     #     switch context.output
@@ -121,7 +119,7 @@ function update! (::Type{DeformationModelReduction3D},
 end
 export update!
 
-function thermalstress(::Type{DeformationModelReduction3D},
+function thermalstress{MR<:DeformationModelReduction3D}(::Type{MR},
                         self::MaterialDeformationLinear; context...)
 # Calculate vector of thermal stress components.
 #
@@ -133,13 +131,16 @@ function thermalstress(::Type{DeformationModelReduction3D},
 #     m=material
 #     context=structure; see the update() method
     #
-    for arg in args
+    for arg in context
         sy, val = arg
         if sy==:dT
             dT=val
-            tangentmoduli!(self, self.bufferedD; context...);# local material stiffness
-            v = -self.bufferedD[:,1:3]*(dT*CTE);
-            return v
+            if (dT!= 0.0)    # nonzero temperature differential?
+                D=zeros(JFFlt,6,6)
+                tangentmoduli!(MR, self, D; context...);# local material stiffness
+                v = -D[:,1:3]*(dT*self.property.CTE);
+                return v
+            end
         end
     end
     return  zeros(JFFlt, 6, 1);
@@ -203,7 +204,8 @@ export thermalstress
 ################################################################################
 # Plane stress model
 
-function tangentmoduli!{P<:PropertyDeformationLinear}(::Type{DeformationModelReduction2DStress},
+function tangentmoduli!{P<:PropertyDeformationLinear,
+    MR<:DeformationModelReduction2DStress}(::Type{MR},
                         self::MaterialDeformationLinear{P}, 
                         D::JFFltMat; context...)
     # # Calculate the material stiffness matrix.
@@ -216,9 +218,10 @@ function tangentmoduli!{P<:PropertyDeformationLinear}(::Type{DeformationModelRed
     # # the output arguments are
     # #     D=matrix 6x6 in the local material orientation Cartesian basis
     # #
-    
-    tangentmoduli3d!(self.property, self.bufferedD; context...);
-    Dt = self.bufferedD[1:2, 1:2]- self.bufferedD[1:2,3]*self.bufferedD[3,1:2]/self.bufferedD[3,3];
+
+    D3d=zeros(JFFlt,6,6)
+    tangentmoduli3d!(self.property, D3d; context...);
+    Dt = D3d[1:2, 1:2]- D3d[1:2,3]*D3d[3,1:2]/D3d[3,3];
     const ix=[1, 2, 4];
     for i=1:2
         for j=1:2
@@ -226,10 +229,120 @@ function tangentmoduli!{P<:PropertyDeformationLinear}(::Type{DeformationModelRed
         end        
     end
     for i=1:3
-        D[3,i]= D[i,3]= self.bufferedD[4,ix[i]];
+        D[3,i]= D[i,3]= D3d[4,ix[i]];
     end    
 end
 export tangentmoduli!
+
+function update!{MR<:DeformationModelReduction2DStress}(::Type{MR},
+                        self::MaterialDeformationLinear, ms; context...)
+        # Update material state.
+        #
+        # function [out, newms] = update (self, ms, context)
+        #
+        # Update material state.  Return the updated material state, and the
+        # requested quantity (default is the stress).
+        #   Call as:
+        #     [out,newms] = update(m, ms, context)
+        #  where
+        #     m=material
+        #     ms = material state
+        #     context=structure
+        #        with mandatory fields
+        #           strain=strain vector  in the local material
+        #               directions (which may be the same as the global coordinate
+        #               directions)
+        #        and optional fields
+        #           output=type of quantity to output, and interpreted by the
+        #               particular material; [] is returned when the material does not
+        #               recognize the requested quantity to indicate uninitialized
+        #               value.  It can be tested with isempty ().
+        #                  output ='Cauchy' - Cauchy stress; this is the default
+        #                      when output type is not specified.
+        #                  output ='princCauchy' - principal Cauchy stress;
+        #                  output ='pressure' - pressure;
+        #                  output ='vol_strain' - volumetric strain;
+        #           outputRm=optional orientation matrix in which output should 
+        #               supplied   
+        #
+        #   It is assumed that stress is output in m-component vector 
+        #           form. m=3 for plane stress, m=4 for plane strain or axially 
+        #           symmetric
+        #   The output arguments are
+        #     out=requested quantity
+        #     newms=new material state; don't forget that if the update is final
+        #           the material state newms must be assigned and stored.  Otherwise
+        #           the material update is lost!
+    #
+    Ev=JFFlt[]                  # it is empty: we need to get it from context
+    output=:Cauchy
+    for arg in context
+        sy, val = arg
+        if sy==:strain
+            Ev=val
+        elseif sy==:output
+            output=val
+        end
+    end
+    D=zeros(JFFlt,3,3)
+    tangentmoduli!(MR,self,D; context...)
+    tSigma = thermalstress(MR,self; context...);
+    stress = D * Ev + tSigma;
+    if output==:Cauchy
+        out = stress;
+    elseif output==:pressure
+        out = -sum(stress(1:2))/3;
+    elseif output==:volstrain
+        out = sum(Ev(1:2));     # actually this is probably incorrect
+        #for plane stress: the transverse stress is not accounted for
+    elseif output==:princCauchy
+        t=zeros(JFFlt,3,3)
+        t = stress3vto3x3t!(stress,t);
+        ep=eig(t);
+        out =sort(ep[1]);    
+    else
+        out = stress;
+    end
+    newms = ms;
+    return out,newms;
+end
+
+function thermalstress{MR<:DeformationModelReduction2DStress}(::Type{MR},
+                        self::MaterialDeformationLinear; context...)
+# Calculate vector of thermal stress components.
+#
+# function v = thermal_stress(self,context)
+#
+#   Call as:
+#     v = thermal_stress(m,context)
+#  where
+#     m=material
+#     context=structure; see the update() method
+    #
+    for arg in context
+        sy, val = arg
+        if sy==:dT
+            dT=val
+            D=zeros(JFFlt,3,3)
+            tangentmoduli!(MR, self, D; context...);# local material stiffness
+            v = -D*(dT[1]*[self.property.CTE[1:2],0.0]);
+            return v
+            # switch self.reduction
+            #     case 'axisymm'
+            #         D = tangent_moduli(self, context);
+            #         v = -D*context.dT*[alphas(1:3).*ones(3, 1); 0];
+            #     case 'strain'
+            #         D=  self.property.tangent_moduli(context);% need 3-D
+            #         v = -context.dT*[D(1:2, 1:2)*(alphas(1:2).*ones(2,1))+...
+            #             alphas(3)*D(1:2,3); 0];
+            
+        end
+    end
+    return  zeros(JFFlt, 3, 1);
+end
+export thermalstress
+
+            
 
 ################################################################################
 # Axially symmetric model
@@ -248,11 +361,11 @@ function tangentmoduli!(::Type{DeformationModelReduction2DAxisymm},
     # #     D=matrix 6x6 in the local material orientation Cartesian basis
     # #
     
-    
-    tangentmoduli3d!(self.property, self.bufferedD; context...);
+    D3d=zeros(JFFlt,6,6)
+    tangentmoduli3d!(self.property, D3d; context...);
     for i=1:4
         for j=1:4
-            D[j,i]= self.bufferedD[j,i];
+            D[j,i]= D3d[j,i];
         end        
     end
 end
@@ -275,9 +388,9 @@ function tangentmoduli!{P<:PropertyDeformationLinear}(::Type{DeformationModelRed
     # #     D=matrix 6x6 in the local material orientation Cartesian basis
     # #
     
-    
-    tangentmoduli3d!(self.property, self.bufferedD; context...);
-    D[1,1] = self.bufferedD[1, 1]- self.bufferedD[1,2:3]*self.bufferedD[2:3,2:3]\self.bufferedD[2:3,1];
+    D3d=zeros(JFFlt,6,6)
+    tangentmoduli3d!(self.property, D3d; context...);
+    D[1,1] = D3d[1, 1]- D3d[1,2:3]*D3d[2:3,2:3]\D3d[2:3,1];
 end
 export tangentmoduli!
 

@@ -52,6 +52,10 @@ export spacedim
 export xyz3
 export count
 
+include("FENodeToFEMapModule.jl")
+using JFinEALE.FENodeToFEMapModule
+export FENodeToFEMap
+
 include("NodalFieldModule.jl")
 using JFinEALE.NodalFieldModule
 export NodalField
@@ -104,6 +108,7 @@ export Q4quadrilateral
 export Q4elliphole
 export Q4block
 export Q4blockx
+
 include("MeshLineModule.jl")
 using JFinEALE.MeshLineModule
 export L2block
@@ -146,6 +151,16 @@ include("MaterialAcousticFluidModule.jl")
 using JFinEALE.MaterialAcousticFluidModule
 export MaterialAcousticFluid
 
+include("PropertyDeformationLinearModule.jl")
+using JFinEALE.PropertyDeformationLinearModule
+export PropertyDeformationLinear
+export tangentmoduli3d!
+
+include("PropertyDeformationLinearIsoModule.jl")
+using JFinEALE.PropertyDeformationLinearIsoModule
+export PropertyDeformationLinearIso
+export tangentmoduli3d!
+
 include("DeformationModelReductionModule.jl")
 using JFinEALE.DeformationModelReductionModule
 export DeformationModelReduction
@@ -156,16 +171,6 @@ export DeformationModelReduction2DAxisymm
 export DeformationModelReduction3D
 export nstrains
 export Blmat!
-
-include("PropertyDeformationLinearModule.jl")
-using JFinEALE.PropertyDeformationLinearModule
-export PropertyDeformationLinear
-export tangentmoduli3d!
-
-include("PropertyDeformationLinearIsoModule.jl")
-using JFinEALE.PropertyDeformationLinearIsoModule
-export PropertyDeformationLinearIso
-export tangentmoduli3d!
 
 include("MaterialDeformationModule.jl")
 using JFinEALE.MaterialDeformationModule
@@ -182,6 +187,13 @@ export stress3x3tto6v!
 export strain9vto6v!
 export strain6vto9v!
 export stress9vto6v!
+export stressvectorrotation
+export strainvectorrotation
+export stressvectorrotation
+export strainvectorrotation
+export rotatestiffness!
+export rotatecompliance!
+
 
 include("MaterialDeformationLinearModule.jl")
 using JFinEALE.MaterialDeformationLinearModule
@@ -246,6 +258,11 @@ include("FEMMDeformationLinearModule.jl")
 using JFinEALE.FEMMDeformationLinearModule
 export FEMMDeformationLinear
 export stiffness
+export nzebcloadsstiffness
+export mass
+export inspectintegpoints
+export fieldfromintegpoints
+
 
 include("AcousticsAlgorithmModule.jl")
 using JFinEALE.AcousticsAlgorithmModule

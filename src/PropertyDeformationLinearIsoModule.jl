@@ -11,7 +11,7 @@ type PropertyDeformationLinearIso<:PropertyDeformationLinear
     rho::JFFlt                  # mass density
     E::JFFlt
     nu::JFFlt
-    CTE::JFFltMat               # three thermal expansion coefficients
+    CTE::JFFltVec               # three thermal expansion coefficients
     D::JFFltMat
 end
 export PropertyDeformationLinearIso
@@ -30,7 +30,7 @@ function PropertyDeformationLinearIso(E::JFFlt,nu::JFFlt)
     lambda = E * nu / (1 + nu) / (1 - 2*(nu));
     mu = E / 2. / (1+nu);
     D = lambda * m1 * m1' + 2. * mu * mI;
-    return PropertyDeformationLinearIso(rho,E,nu,zeros(JFFlt,3,1),D)
+    return PropertyDeformationLinearIso(rho,E,nu,zeros(JFFlt,3),D)
 end
 
 
@@ -47,7 +47,23 @@ function PropertyDeformationLinearIso(rho::JFFlt,E::JFFlt,nu::JFFlt)
     lambda = E * nu / (1 + nu) / (1 - 2*(nu));
     mu = E / 2. / (1+nu);
     D = lambda * m1 * m1' + 2. * mu * mI;
-    return PropertyDeformationLinearIso(rho,E,nu,zeros(JFFlt,3,1),D)
+    return PropertyDeformationLinearIso(rho,E,nu,zeros(JFFlt,3),D)
+end
+
+function PropertyDeformationLinearIso(rho::JFFlt,E::JFFlt,nu::JFFlt,CTE::JFFlt)
+    if (rho<=0.0)
+        error("Non-positive mass density!");
+    end
+    if (E<=0.0)
+        error("Non-positive Young's modulus!");
+    end
+    if (nu<0.0)
+        error("Negative Poisson ratio!");
+    end
+    lambda = E * nu / (1 + nu) / (1 - 2*(nu));
+    mu = E / 2. / (1+nu);
+    D = lambda * m1 * m1' + 2. * mu * mI;
+    return PropertyDeformationLinearIso(rho,E,nu,zeros(JFFlt,3)+CTE,D)
 end
 
 function  tangentmoduli3d!(self::PropertyDeformationLinearIso,D::JFFltMat; context...)

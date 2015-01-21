@@ -80,6 +80,32 @@ function gathervaluesasvec!{T<:Number}(self::NodalField,dest::JFVec{T},conn::JFI
 end
 export gathervaluesasvec!
 
+# Gather values from the field "as vector".
+function gathervaluesasvec!{T<:Number}(self::NodalField,dest::JFMat{T},conn::JFIntMat)
+    en::JFInt=1;
+    for i=1:length(conn)
+        for j=1:size(self.values,2)
+            dest[en]=self.values[conn[i],j];
+            en=en+1;
+        end
+    end
+    return self
+end
+export gathervaluesasvec!
+
+# Gather values from the field "as vector".
+function gathervaluesasvec!{T<:Number}(self::NodalField,dest::JFMat{T},conn::JFIntVec)
+    en::JFInt=1;
+    for i=1:length(conn)
+        for j=1:size(self.values,2)
+            dest[en]=self.values[conn[i],j];
+            en=en+1;
+        end
+    end
+    return self
+end
+export gathervaluesasvec!
+
 # Gather values from the field "as a matrix".
 function gathervaluesasmat!{T<:Number}(self::NodalField,dest::JFMat{T},conn::JFIntVec)
     for i=1:length(conn)

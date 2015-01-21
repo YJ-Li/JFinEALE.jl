@@ -9,7 +9,9 @@ using JFinEALE.ForceIntensityModule
 using JFinEALE.AssemblyModule
 using JFinEALE.DeformationModelReductionModule
 using JFinEALE.PropertyDeformationLinearModule
+using JFinEALE.MaterialDeformationModule
 using JFinEALE.MaterialDeformationLinearModule
+using JFinEALE.FENodeToFEMapModule
 
 # Class for heat diffusion finite element modeling machine.
 type FEMMDeformationLinear{S<:FESet,P<:PropertyDeformationLinear}
@@ -241,10 +243,23 @@ function mass{MR<:DeformationModelReduction,
 end
 export mass
 
-function inspectintegpoints(self, 
-        geom, u, dT, fe_list, context,
-        inspector, idat)
-# Inspect the integration point quantities.
+function inspectintegpoints{MR<:DeformationModelReduction,
+    S<:FESet}(::Type{MR},self::FEMMDeformationLinear{S}, 
+              geom::NodalField{JFFlt}, u::NodalField{JFFlt},
+              felist::JFIntVec,
+              inspector::Function, idat; context...)
+    dT=NodalField(name ="dT",data =zeros(JFFlt,nfens(geom),1)) # zero difference in temperature
+    return inspectintegpoints(MR,self,geom,u,dT,felist,inspector,idat; context...);
+end
+export inspectintegpoints
+
+function inspectintegpoints{MR<:DeformationModelReduction,
+    S<:FESet}(::Type{MR},self::FEMMDeformationLinear{S}, 
+              geom::NodalField{JFFlt}, u::NodalField{JFFlt},
+              dT::NodalField{JFFlt},
+              felist::JFIntVec,
+              inspector::Function, idat; context...)
+    # Inspect the integration point quantities.
 # 
 # Input arguments
 #    geom - reference geometry field
@@ -278,89 +293,151 @@ function inspectintegpoints(self,
     # Precompute basis f. values + basis f. gradients wrt parametric coor
     npts, Ns, gradNparams, w, pc = integrationdata(self.femmbase);
     # Prepare assembler and temporaries
-    Ke::JFFltMat =zeros(JFFlt,Kedim,Kedim);                # element matrix -- used as a buffer
-    conn::JFIntMat=zeros(JFInt,nne,1); # element nodes -- used as a buffer
+     conn::JFIntMat=zeros(JFInt,nne,1); # element nodes -- used as a buffer
     x::JFFltMat =zeros(JFFlt,nne,sdim); # array of node coordinates -- used as a buffer
+    ue::JFFltMat =zeros(JFFlt,Kedim,1); # array of node displacements -- used as a buffer
+    dTe::JFFltMat =zeros(JFFlt,nne,1); # array of node temperature increments -- used as a buffer
     dofnums::JFIntMat=zeros(JFInt,1,Kedim); # degree of freedom array -- used as a buffer
     loc::JFFltMat =zeros(JFFlt,1,sdim); # quadrature point location -- used as a buffer
     J::JFFltMat =eye(JFFlt,sdim,mdim); # Jacobian matrix -- used as a buffer
     RmTJ::JFFltMat =zeros(JFFlt,mdim,mdim); # intermediate result -- used as a buffer
     gradN::JFFltMat =zeros(JFFlt,nne,mdim); # intermediate result -- used as a buffer
-    D::JFFltMat =zeros(JFFlt,nstr,nstr); # material stiffness matrix -- used as a buffer
     B::JFFltMat =zeros(JFFlt,nstr,Kedim); # strain-displacement matrix -- used as a buffer
-   mo::MaterialOrientation=self.femmbase.mo;
-     tangentmoduli!(MR,self.material,D;loc=[0.0]);# Moduli in material orientation
-    # # Output orientation matrix
-    # outputRm_identity = ~isfield(context,'outputRm');# if identity, work not needed
-    # outputRm_constant = (outputRm_identity) ...
-    #     || strcmp(class(context.outputRm),'double');# need to compute at each point
-    # if (~outputRm_constant)
-    #     outputRmh = context.outputRm;# handle to a function  to evaluate outputRm
-    # else
-    #     if (~outputRm_identity)
-    #         outputRm = context.outputRm;
-    #     end
-    # end    
-    # if ~isfield(context,'output')
-    #     context.output=  'Cauchy';# default output
-    # end
-    # # Material
-    # mat = self.material;
-    # ms=[];
-    # # Retrieve data for efficiency
-    # conns = fes.conn; # connectivity
-    # labels = fes.label; # finite element labels
-    # xs =geom.values;
-    # Us =u.values;
-    # context.strain= [];
-    # if isempty(dT)
-    #     dTs=zeros(geom.nfens,1);
-    # else
-    #     dTs=dT.values;
-    # end
-    # # Now loop over selected fes 
-    # for m=1:length(fe_list)
-    #     i=fe_list(m);
-    #     conn = conns(i,:); # connectivity
-    #     conn =conns(i,:);
-    #     x=xs(conn,:);
-    #     U=reshape(u, gather_values(u,conn));
-    #     dT =dTs(conn,:);
-    #     # Loop over all integration points
-    #     for j=1:npts
-    #         c =Ns{j}'*x;# physical location
-    #         u_c = transpose(Ns{j})*Us(conn,:);
-    #         J = x' * Nders{j};
-    #         if (~Rm_constant)# do I need to evaluate the local material orientation?
-    #             if (~isempty(labels )),  Rm =Rmh(c,J,labels(i));
-    #             else,                    Rm =Rmh(c,J,[]);                end
-    #         end
-    #         if (~outputRm_constant)# do I need to evaluate the output orientation?
-    #             if (~isempty(labels )),  outputRm =outputRmh(c,J,labels(i));
-    #             else,                    outputRm =outputRmh(c,J,[]);    end
-    #         end
-    #         Ndersp = Nders{j}/J;# derivatives wrt global coor
-    #         Jac = Jacobian_volume(fes,conn, Ns{j}, J, x);
-    #         B =self.hBlmat(self,Ns{j},Ndersp*Rm,c,Rm);# strains  in material coordinates, displacements in global coordinates
-    #         context.strain = B*U;#strain in the material coords
-    #         context.dT = transpose(Ns{j})*dT;
-    #         context.xyz =c;
-    #         context.ms=ms;
-    #         [out,ignore] = update(mat, context.ms, context);
-    #         switch context.output
-    #             case 'Cauchy'
-    #                 out =mat.stress_vector_rotation(Rm')*out;#  To global coordinate system
-    #                 if (~outputRm_identity)
-    #                     out =mat.stress_vector_rotation(outputRm)*out;# To output coordinate system
-    #                 end
-    #         end
-    #         if ~isempty (inspector)
-    #             idat =feval(inspector,idat,out,c,u_c,pc(j,:));
-    #         end
-    #     end
-    # end
+    ms =[]                                # stand-in for a GENUINE material state
+    mo::MaterialOrientation=self.femmbase.mo; # the material coordinate system
+    outputmo=mo;                # output the stresses in the material coordinate system
+    output=:Cauchy;
+    for arg in context
+        sy, val = arg
+        if sy==:outputmo
+            outputmo=val
+        elseif sy==:output
+            output=val
+        end
+    end
+    
+    for ilist=1:length(felist) # Loop over elements
+        i=felist[ilist];
+        getconn!(fes,conn,i);
+        gathervaluesasmat!(geom,x,conn);# retrieve element coordinates
+        gathervaluesasvec!(u,ue,conn);# retrieve element displacements
+        gathervaluesasvec!(dT,dTe,conn);# retrieve element temperature increments
+        for j=1:npts # Loop over quadrature points 
+            At_mul_B!(loc,Ns[j],x);# Quadrature points location
+            At_mul_B!(J, x, gradNparams[j]); # calculate the Jacobian matrix 
+            Jac = FESetModule.Jacobianvolume(fes,conn, Ns[j], J, x);# Jacobian
+            updateRm!(mo,loc,J,getlabel(fes,i)); # Material orientation matrix 
+            At_mul_B!(RmTJ, mo.Rm, J); # local Jacobian matrix
+             # gradient WRT material coordinates
+            FESetModule.gradN!(fes,gradN,gradNparams[j],RmTJ);#Do: gradN = gradNparams[j]/RmTJ;
+            Blmat!(MR,B,Ns[j],gradN,loc,mo.Rm);#  strains in material cs, displacements in global cs
+            updateRm!(outputmo,loc,J,getlabel(fes,i)); # Output material orientation matrix
+            # Quadrature point quantities
+            qpstrain=B*ue;
+            qpdT=Ns[j]'*dTe;
+            # Material updates the state and returns the output
+            out,newms =update!(MR,self.material,ms;
+                               strain=qpstrain,dT=qpdT,loc=loc);
+            if (output==:Cauchy)   # Transform stress tensor, if that is the output
+                out =stressvectorrotation(MR,mo.Rm')*out;#  To global coordinate system
+                out =stressvectorrotation(MR,outputmo.Rm)*out;# To output coordinate system
+            end
+            # Call the inspector
+            idat =inspector(idat,out,loc,pc[j,:]); 
+        end # Loop over quadrature points
+    end # Loop over elements
     return;
 end
+export inspectintegpoints
+
+function fieldfromintegpoints{MR<:DeformationModelReduction,
+    S<:FESet}(::Type{MR},self::FEMMDeformationLinear{S}, 
+              geom::NodalField{JFFlt}, u::NodalField{JFFlt},
+              output, component; context...)
+    dT=NodalField(name ="dT",data =zeros(JFFlt,nfens(geom),1)) # zero difference in temperature
+    return fieldfromintegpoints(MR,self,geom,u,dT, output, component; context...)
+end
+export fieldfromintegpoints
+
+function fieldfromintegpoints{MR<:DeformationModelReduction,
+    S<:FESet}(::Type{MR},self::FEMMDeformationLinear{S}, 
+              geom::NodalField{JFFlt}, u::NodalField{JFFlt},
+              dT::NodalField{JFFlt}, output, component; context...)
+    
+# Input arguments
+#     geom     - reference geometry field
+#     u        - displacement field
+#     dT       - temperature difference field
+#     output   - this is what you would assign to the 'output' attribute of
+#                the context argument of the material update() method.
+#     component- component of the 'output' array: see the material update()
+#                method.
+#     options  - struct with fields recognized by update() method of the 
+#                material; optional argument
+# Output argument
+#     fld - the new field that can be used to map values the colors
+#
+   fes=self.femmbase.fes;
+    # Make the inverse map from finite element nodes to gcells
+    fen2fe =FENodeToFEMap(fes.conn,nfens(geom))
+    # Container of intermediate results
+    sum_inv_dist =zeros(JFFlt,length(fen2fe.map));
+    sum_quant_inv_dist =zeros(JFFlt,length(fen2fe.map),length(component));
+    # The data for the field to be constructed is initialized
+    nvals = zeros(JFFlt,nfens(geom),length(component));
+     # Constants
+    const nfes::JFInt=count(fes); # number of finite elements in the set
+    const ndn::JFInt= ndofn(u); # number of degrees of freedom per node
+    const nne::JFInt =nfensperfe(fes); # number of nodes for element
+    const sdim::JFInt = ndofn(geom);            # number of space dimensions
+    const mdim::JFInt= manifdim(fes); # manifold dimension of the element
+    const nstr::JFInt =nstrains(MR);  # number of strains
+    const Kedim::JFInt =ndn*nne;             # dimension of the element matrix
+    # Prepare temporaries
+     conn::JFIntMat=zeros(JFInt,nne,1); # element nodes -- used as a buffer
+    x::JFFltMat =zeros(JFFlt,nne,sdim); # array of node coordinates -- used as a buffer
+    # This is an inverse-distance interpolation inspector.
+    function idi(idat, out, xyz, pc)
+        d=zeros(JFFlt,length(conn))
+        mindn=Inf
+        for jjj=1:length(d)
+            d[jjj] =norm(x[jjj,:]-xyz);
+            if (d[jjj] > 0.0)
+                mindn=min(mindn,d[jjj])
+            end
+        end
+        mindn=mindn/1.0e9;
+        for jjj=1:length(d)
+            invdjjj =1./(d[jjj]+mindn);
+            quant= out[component]
+            for kkk=1:length(quant)
+                sum_quant_inv_dist[conn[jjj],kkk]+= invdjjj*quant[kkk];
+            end
+            sum_inv_dist[conn[jjj]]=sum_inv_dist[conn[jjj]]+invdjjj;
+        end
+        return idat
+    end
+    # Loop over cells to interpolate to nodes
+    idat=0;
+    for i=1:count(fes)
+        getconn!(fes,conn,i);
+        gathervaluesasmat!(geom,x,conn);# retrieve element coordinates
+        idat = inspectintegpoints(MR, self, geom, u, dT,
+                                  [i], idi, idat; output = output, context...);
+    end
+    # compute the data array
+    for kkk=1:size(nvals,1)
+        for j=1:length(component)
+            if (sum_inv_dist[kkk]> 0.0)
+                nvals[kkk,j]=sum_quant_inv_dist[kkk,j]/sum_inv_dist[kkk];
+            end
+        end
+    end    
+    # Make the field
+    fld =NodalField(data=nvals);
+    return fld;
+end
+export fieldfromintegpoints
 
 
 end
