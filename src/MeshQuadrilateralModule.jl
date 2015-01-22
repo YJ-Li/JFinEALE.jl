@@ -4,6 +4,7 @@ using JFinEALE.JFFoundationModule
 using JFinEALE.FESetModule
 using JFinEALE.FENodeSetModule
 using JFinEALE.MeshModificationModule
+using JFinEALE.MeshUtilModule
 
 
 function Q4annulus(rin::JFFlt,rex::JFFlt,nr::JFInt,nc::JFInt,Angl::JFFlt)
@@ -16,7 +17,7 @@ function Q4annulus(rin::JFFlt,rex::JFFlt,nr::JFInt,nc::JFInt,Angl::JFFlt)
     # % elements: nr, nc in the radial and circumferential direction
     # % respectively.
     # %
-    # % Note that if you wish to have an annular region with 360° development
+    # % Note that if you wish to have an annular region with 360Â° development
     # % angle  (closed annulus), the nodes along the slit  need to be merged.
     # %
     # % Examples: 
@@ -214,6 +215,82 @@ function Q4blockx(xs::JFFltVec,ys::JFFltVec)
 end
 export Q4blockx
 
+function Q8block(Length::JFFlt,Width::JFFlt,nL::JFInt,nW::JFInt)
+    # Mesh of a rectangle of Q8 elements.
+    # 
+    # function [fens,fes] =Q8_block(Length,Width,nL,nW,options)
+    # 
+    # Examples: 
+    # [fens,fes] = Q8_block(3.5,1.75,2,3,struct('other_dimension',1))
+    # drawmesh({fens,fes},'nodes','fes','facecolor','y', 'linewidth',2); hold on
+    #
+    # See also: Q4_block, Q4_to_Q8
+
+    fens,fes  = Q4block(Length,Width,nL,nW);
+    fens,fes = Q4toQ8(fens,fes);
+end
+export Q8block
+
+function Q4toQ8(fens::FENodeSetModule.FENodeSet, fes::FESetModule.FESetQ4)
+    # Convert a mesh of quadrilateral Q4 to quadrilateral Q8.
+    #
+    # function [fens,fes] = Q4_to_Q8(fens,fes,options)
+    #
+    # options =attributes recognized by the constructor fe_set_Q8
+    #
+    # Examples: 
+    #     R=8.5;
+    #     [fens,fes]=Q4_sphere(R,1,1.0);
+    #     [fens,fes] = Q4_to_Q8(fens,fes,[]);
+    #     fens= onto_sphere(fens,R,[]);
+    #     drawmesh({fens,fes},'nodes','fes','facecolor','y', 'linewidth',2); hold on
+    #
+    # See also: fe_set_Q8
+
+    nedges=4;
+    ec = [1  2; 2  3; 3  4; 4  1];
+    conns = fes.conn;
+    # Additional node numbers are numbered from here
+    newn=FENodeSetModule.count(fens)+1;
+    # make a search structure for edges
+    edges=MeshUtilModule.makecontainer();
+    for i= 1:size(conns,1)
+        conn = conns[i,:];
+        for J = 1:nedges
+            ev=conn[ec[J,:]];
+            newn = MeshUtilModule.addhyperface!(edges, ev, newn);
+        end
+    end
+    xyz1 =fens.xyz;             # Pre-existing nodes
+    # Allocate for vertex nodes plus edge nodes plus face nodes
+    xyz =zeros(JFFlt,newn-1,size(xyz1,2));
+    xyz[1:size(xyz1,1),:] = xyz1; # existing nodes are copied over
+    # calculate the locations of the new nodes
+    # and construct the new nodes
+    for i in keys(edges)
+        C=edges[i];
+        for J = 1:length(C)
+            xyz[C[J].n,:]=mean(xyz[[i,C[J].o],:],1);
+        end
+    end
+    # construct new geometry cells
+    nconns =zeros(JFInt,size(conns,1),8);
+    nc=1;
+    for i= 1:size(conns,1)
+        conn = conns[i,:];
+        econn=zeros(JFInt,1,nedges);
+        for J = 1:nedges
+            ev=conn[ec[J,:]];
+            h,n=MeshUtilModule.findhyperface!(edges, ev);
+            econn[J]=n;
+        end
+        nconns[nc,:] =[conn econn];
+        nc= nc+ 1;
+    end
+    fens =FENodeSetModule.FENodeSet(xyz);
+    fes = FESetModule.FESetQ8(conn=nconns);
+    return fens,fes
+end
+export Q4toQ8
 
 end
-

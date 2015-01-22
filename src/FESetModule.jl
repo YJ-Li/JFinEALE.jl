@@ -894,7 +894,7 @@ function bfun(self::FESetQ8, param_coords::JFFltMat)
            1.0/2*xim*xip*etam;
            -1.0/2*etam*etap*xip;
            -1.0/2*xim*xip*etap;
-           1.0/2*etam*etap*xim]::JFFltMat;
+           1.0/2*etam*etap*xim];
     return reshape(val,8,1); # Make sure this is a matrix
 end
 

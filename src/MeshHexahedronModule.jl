@@ -297,7 +297,7 @@ function   H8toH27(fens::FENodeSetModule.FENodeSet, fes::FESetModule.FESetH8)
         nconns[nc,:] =[conn econn fconn vconn];
         nc= nc+ 1;
     end
-    fens.xyz=xyz;
+    fens =FENodeSetModule.FENodeSet(xyz);
     fes = FESetModule.FESetH27(conn=nconns) ;
     return fens,fes;
 end

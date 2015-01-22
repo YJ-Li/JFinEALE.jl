@@ -1,10 +1,35 @@
 module MeshExportModule
 
+using JFinEALE.JFFoundationModule
+using JFinEALE.FESetModule
+using JFinEALE.FENodeSetModule
+
 const L2=3
 const T3=5
 const Q4=9
 const T4=10
 const H8=12
+const Q8=23
+
+# Export mesh to a VTK 1.0 file as an unstructured grid.
+function vtkexportmesh{T<:FESet} (theFile::String, fens::FENodeSet, fes::T; opts...)
+    if typeof(fes)==FESetL2
+        Cell_type=L2
+    elseif typeof(fes)==FESetT3
+        Cell_type=T3
+    elseif typeof(fes)==FESetQ4
+        Cell_type=Q4
+    elseif typeof(fes)==FESetT4
+        Cell_type=T4
+    elseif typeof(fes)==FESetH8
+        Cell_type=H8
+    elseif typeof(fes)==FESetQ8
+        Cell_type=Q8
+    else
+        error("Cannot handle $(typeof(fes))")
+    end
+    return vtkexportmesh (theFile,fes.conn,fens.xyz, Cell_type; opts...)
+end
 
 # Export mesh to a VTK 1.0 file as an unstructured grid.
 function vtkexportmesh (theFile::String,Connectivity,Points, Cell_type;

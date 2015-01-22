@@ -41,9 +41,18 @@ export cat
 export updateconn!
 export FESetP1
 export FESetL2
+export FESetL3
 export FESetT3
 export FESetQ4
+export FESetQ9
+export FESetQ8
+export FESetT6
 export FESetH8
+export FESetH20
+export FESetH27
+export FESetT4
+export FESetT10
+
 
 include("FENodeSetModule.jl")
 using JFinEALE.FENodeSetModule
@@ -108,6 +117,9 @@ export Q4quadrilateral
 export Q4elliphole
 export Q4block
 export Q4blockx
+export Q8block
+export Q4toQ8
+
 
 include("MeshLineModule.jl")
 using JFinEALE.MeshLineModule
