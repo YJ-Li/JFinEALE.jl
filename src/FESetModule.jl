@@ -634,6 +634,56 @@ function boundaryfe(self::FESetL2)
 end
 
 #############################################################################
+# FESetL3
+#############################################################################
+
+type FESetL3 <: FESet1Manifold
+    #        # Connectivity array of the set.
+    #        #    The connectivity array lists the nodes that the finite element in
+    #        #  the set connects. The j-th element connects the nodes conn(j,:)
+    conn::JFIntMat
+    #        # Numerical label, supplied for each element in the set, or
+    #        # a single number to be applied to all elements
+    getotherdimension::Function
+    axisymm::Bool
+    label::JFIntVec
+
+    function    FESetL3(;conn::JFIntMat=[],other_dimension =1.0,axisymm::Bool=false,label =[])
+        if (size(conn,2)!=3)
+            error("Wrong number of nodes.");
+        end
+        # Needs to make a COPY of the input arrays
+        self =new(deepcopy(conn),(x,y,z)->  1.0,axisymm,deepcopy(label))
+        setotherdimension!(self,other_dimension)
+        setlabel!(self,label)
+        return self
+    end
+end
+export FESetL3 
+
+function bfun(self::FESetL3, param_coords::JFFltMat)
+    xi=param_coords[1];
+    val = [(xi-1)*xi/2;  (xi+1)*xi/2;  -(xi+1)*(xi-1)];
+    return reshape(val,3,1) # make sure this is a matrix
+end
+
+function bfundpar(self::FESetL3, param_coords::JFFltMat)
+    xi=param_coords[1];
+    val = [(xi-1/2); (xi+1/2); -2*xi];
+    return reshape(val,3,1) # make sure this is a matrix
+end
+
+function boundaryconn(self::FESetL3)
+    # Get boundary connectivity.
+    return [self.conn[:,1];self.conn[:,2]];
+end
+
+function boundaryfe(self::FESetL3)
+    # Get  the constructor of the class of the  boundary finite element.
+    return FESetP1;
+end
+
+#############################################################################
 # FESetT3
 #############################################################################
 
@@ -740,6 +790,215 @@ end
 
 
 #############################################################################
+# FESetQ9
+#############################################################################
+
+type FESetQ9 <: FESet2Manifold
+    # Connectivity array of the set.
+    #    The connectivity array lists the nodes that the finite element in
+    #  the set connects. The j-th element connects the nodes conn(j,:)
+    conn::JFIntMat
+    #        # Numerical label, supplied for each element in the set, or
+    #        # a single number to be applied to all elements
+    getotherdimension::Function
+    axisymm::Bool
+    label::JFIntVec
+
+    function    FESetQ9(;conn::JFIntMat=[],other_dimension =1.0,axisymm::Bool=false,label =[])
+        if (size(conn,2)!=9)
+            error("Wrong number of nodes.");
+        end
+        # Needs to make a COPY of the input arrays
+        self =new(deepcopy(conn),(x,y,z)->  1.0,axisymm,deepcopy(label))
+        setotherdimension!(self,other_dimension)
+        setlabel!(self,label)
+        return self
+    end
+end
+export FESetQ9 
+
+function bfun(self::FESetQ9, param_coords::JFFltMat)
+    # Evaluate the basis function matrix for an 4-node quadrilateral.
+    xi=param_coords[1];
+    xis = [(xi-1)*xi/2;  (xi+1)*xi/2;  -(xi+1)*(xi-1)];
+    eta=param_coords[2];
+    etas = [(eta-1)*eta/2;  (eta+1)*eta/2;  -(eta+1)*(eta-1)];
+    xisetas=(xis*etas');
+    val = xisetas([1     2     5     4     3     8     6     7     9])';
+    return reshape(val,9,1); # Make sure this is a matrix
+end
+
+function bfundpar(self::FESetQ9, param_coords::JFFltMat)
+    # Evaluate the derivatives of the basis function matrix.
+    xi=param_coords[1];
+    xis = [(xi-1)*xi/2;  (xi+1)*xi/2;  -(xi+1)*(xi-1)];
+    dxis = [(xi-1/2); (xi+1/2); -2*xi];
+    eta=param_coords[2];
+    etas = [(eta-1)*eta/2;  (eta+1)*eta/2;  -(eta+1)*(eta-1)];
+    detas=[(eta-1/2); (eta+1/2); -2*eta];
+    dxisetas=(dxis*etas');
+    xisdetas=(xis*detas');
+    ix=[1     2     5     4     3     8     6     7     9]
+    val =  [dxisetas(ix)'             xisdetas(ix)'];
+    return reshape(val,9,2); # Make sure this is a matrix
+end
+
+function boundaryconn(self::FESetQ9)
+    # Get boundary connectivity.
+    return [self.conn[:,[1,2,5]];self.conn[:,[2,3,6]];self.conn[:,[3,4,7]];self.conn[:,[4,1,8]]];
+end
+ 
+function boundaryfe(self::FESetQ9)
+    # Get  the constructor of the class of the  boundary finite element.
+    return FESetL3;
+end
+
+#############################################################################
+# FESetQ8
+#############################################################################
+
+type FESetQ8 <: FESet2Manifold
+    # Connectivity array of the set.
+    #    The connectivity array lists the nodes that the finite element in
+    #  the set connects. The j-th element connects the nodes conn(j,:)
+    conn::JFIntMat
+    #        # Numerical label, supplied for each element in the set, or
+    #        # a single number to be applied to all elements
+    getotherdimension::Function
+    axisymm::Bool
+    label::JFIntVec
+
+    function    FESetQ8(;conn::JFIntMat=[],other_dimension =1.0,axisymm::Bool=false,label =[])
+        if (size(conn,2)!=8)
+            error("Wrong number of nodes.");
+        end
+        # Needs to make a COPY of the input arrays
+        self =new(deepcopy(conn),(x,y,z)->  1.0,axisymm,deepcopy(label))
+        setotherdimension!(self,other_dimension)
+        setlabel!(self,label)
+        return self
+    end
+end
+export FESetQ8 
+
+function bfun(self::FESetQ8, param_coords::JFFltMat)
+    # Evaluate the basis function matrix for an 4-node quadrilateral.
+    xim    = (-1 + param_coords[1]);
+    etam   = (-1 + param_coords[2]);
+    xip    = (1 + param_coords[1]);
+    etap   = (1 + param_coords[2]);
+    val = [ -1.0/4*xim*etam*(1+param_coords[1]+param_coords[2]);
+           1.0/4*xip*etam*(1-param_coords[1]+param_coords[2]);
+           -1.0/4*xip*etap*(1-param_coords[1]-param_coords[2]);
+           1.0/4*xim*etap*(1+param_coords[1]-param_coords[2]);
+           1.0/2*xim*xip*etam;
+           -1.0/2*etam*etap*xip;
+           -1.0/2*xim*xip*etap;
+           1.0/2*etam*etap*xim]::JFFltMat;
+    return reshape(val,8,1); # Make sure this is a matrix
+end
+
+function bfundpar(self::FESetQ8, param_coords::JFFltMat)
+    # Evaluate the derivatives of the basis function matrix.
+    xi =param_coords[1];
+    eta =param_coords[2];
+    val=zeros(JFFlt,8,2)
+    val[:,1]= [1.0/4*(1-eta)*(1+xi+eta)-1.0/4*(1-xi)*(1-eta);
+               -1.0/4*(1-eta)*(1-xi+eta)+1.0/4*(1+xi)*(1-eta);
+               -1.0/4*(1+eta)*(1-xi-eta)+1.0/4*(1+xi)*(1+eta);
+               1.0/4*(1+eta)*(1+xi-eta)-1.0/4*(1-xi)*(1+eta);
+               -1.0/2*(1+xi)*(1-eta)+1.0/2*(1-xi)*(1-eta);
+               1.0/2*(1-eta)*(1+eta);
+               -1.0/2*(1+xi)*(1+eta)+1.0/2*(1-xi)*(1+eta);
+               -1.0/2*(1-eta)*(1+eta)];
+    val[:,2] = [1.0/4*(1-xi)*(1+xi+eta)-1.0/4*(1-xi)*(1-eta);
+                1.0/4*(1+xi)*(1-xi+eta)-1.0/4*(1+xi)*(1-eta);
+                -1.0/4*(1+xi)*(1-xi-eta)+1.0/4*(1+xi)*(1+eta);
+                -1.0/4*(1-xi)*(1+xi-eta)+1.0/4*(1-xi)*(1+eta);
+                -1.0/2*(1-xi)*(1+xi);
+                -1.0/2*(1+xi)*(1+eta)+1.0/2*(1+xi)*(1-eta);
+                1.0/2*(1-xi)*(1+xi);
+                -1.0/2*(1-xi)*(1+eta)+1.0/2*(1-xi)*(1-eta)];
+    return  reshape(val,8,2); # Make sure this is a matrix
+end
+
+function boundaryconn(self::FESetQ8)
+    # Get boundary connectivity.
+    return [self.conn[:,[1,2,5]];self.conn[:,[2,3,6]];self.conn[:,[3,4,7]];self.conn[:,[4,1,8]]];
+end 
+
+function boundaryfe(self::FESetQ8)
+    # Get  the constructor of the class of the  boundary finite element.
+    return FESetL3;
+end
+
+#############################################################################
+# FESetT6
+#############################################################################
+
+type FESetT6 <: FESet2Manifold
+    # Connectivity array of the set.
+    #    The connectivity array lists the nodes that the finite element in
+    #  the set connects. The j-th element connects the nodes conn(j,:)
+    conn::JFIntMat
+    #        # Numerical label, supplied for each element in the set, or
+    #        # a single number to be applied to all elements
+    getotherdimension::Function
+    axisymm::Bool
+    label::JFIntVec
+
+    function    FESetT6(;conn::JFIntMat=[],other_dimension =1.0,axisymm::Bool=false,label =[])
+        if (size(conn,2)!=6)
+            error("Wrong number of nodes.");
+        end
+        # Needs to make a COPY of the input arrays
+        self =new(deepcopy(conn),(x,y,z)->  1.0,axisymm,deepcopy(label))
+        setotherdimension!(self,other_dimension)
+        setlabel!(self,label)
+        return self
+    end
+end
+export FESetT6 
+
+function bfun(self::FESetT6, param_coords::JFFltMat)
+    # Evaluate the basis function matrix for an 4-node quadrilateral.
+    r=param_coords[1];
+    s=param_coords[2];
+    t = 1. - r - s;
+    val = [t * (t + t - 1);
+           r * (r + r - 1);
+           s * (s + s - 1);
+           4 * r * t;
+           4 * r * s;
+           4 * s * t];
+    return reshape(val,6,1); # Make sure this is a matrix
+end
+
+function bfundpar(self::FESetT6, param_coords::JFFltMat)
+    # Evaluate the derivatives of the basis function matrix.
+    r =param_coords[1];
+    s =param_coords[2];
+    t = 1. - r - s;
+    val = [-3+4*r+4*s  -3+4*r+4*s;
+           4*r-1  0.0;
+           0.0 4*s-1;
+           4-8*r-4*s  -4*r;
+           4*s  4*r;
+           -4*s  4-4*r-8*s];
+    return  reshape(val,6,2); # Make sure this is a matrix
+end
+
+function boundaryconn(self::FESetT6)
+    # Get boundary connectivity.
+    return [self.conn[:,[1, 2, 4]];self.conn[:,[2, 3, 5]];self.conn[:,[3, 1, 6]]];
+end  
+
+function boundaryfe(self::FESetT6)
+    # Get  the constructor of the class of the  boundary finite element.
+    return FESetL3;
+end
+
+#############################################################################
 # FESetH8
 #############################################################################
 
@@ -816,6 +1075,161 @@ function boundaryfe(self::FESetH8)
 end
 
 
+
+#############################################################################
+# FESetH20
+#############################################################################
+
+
+type FESetH20 <: FESet3Manifold
+    # Connectivity array of the set.
+    #    The connectivity array lists the nodes that the finite element in
+    #  the set connects. The j-th element connects the nodes conn(j,:)
+    conn::JFIntMat
+    #        # Numerical label, supplied for each element in the set, or
+    #        # a single number to be applied to all elements
+    getotherdimension::Function
+    axisymm::Bool
+    label::JFIntVec
+
+    function    FESetH20(;conn::JFIntMat=[],other_dimension =1.0,axisymm::Bool=false,label =[])
+        if (size(conn,2)!=20)
+            error("Wrong number of nodes.");
+        end
+        self =new(deepcopy(conn),(x,y,z)->  1.0,axisymm,deepcopy(label))
+        setotherdimension!(self,other_dimension)
+        setlabel!(self,label)
+        return self
+    end
+end
+export FESetH20
+
+function bfun(self::FESetH20, param_coords::JFFltMat)
+    # Evaluate the basis function matrix for an 20-node hexahedron.
+    xim    = (-1 + param_coords[1]);
+    etam   = (-1 + param_coords[2]);
+    zetam  = (-1 + param_coords[3]);
+    xip    = (1 + param_coords[1]);
+    etap   = (1 + param_coords[2]);
+    zetap  = (1 + param_coords[3]);
+    val = [ 1.0/8*xim*etam*zetam*(2+param_coords[1]+param_coords[2]+param_coords[3]);
+           -1.0/8*xip*etam*zetam*(2-param_coords[1]+param_coords[2]+param_coords[3]);
+           1.0/8*xip*etap*zetam*(2-param_coords[1]-param_coords[2]+param_coords[3]);
+           -1.0/8*xim*etap*zetam*(2+param_coords[1]-param_coords[2]+param_coords[3]);
+           1.0/8*xim*etam*zetap*(-2-param_coords[1]-param_coords[2]+param_coords[3]);
+           -1.0/8*xip*etam*zetap*(-2+param_coords[1]-param_coords[2]+param_coords[3]);
+           1.0/8*xip*etap*zetap*(-2+param_coords[1]+param_coords[2]+param_coords[3]);
+           -1.0/8*xim*etap*zetap*(-2-param_coords[1]+param_coords[2]+param_coords[3]);
+           -1.0/4*xim*xip*etam*zetam;
+           1.0/4*etam*etap*xip*zetam;
+           1.0/4*xim*xip*etap*zetam;
+           -1.0/4*etam*etap*xim*zetam;
+           1.0/4*xim*xip*etam*zetap;
+           -1.0/4*etam*etap*xip*zetap;
+           -1.0/4*xim*xip*etap*zetap;
+           1.0/4*etam*etap*xim*zetap;
+           -1.0/4*zetam*zetap*xim*etam;
+           1.0/4*zetam*zetap*xip*etam;
+           -1.0/4*zetam*zetap*xip*etap;
+           1.0/4*zetam*zetap*xim*etap];
+    return reshape(val,20,1); # Make sure this is a matrix
+end
+
+function bfundpar(self::FESetH20, param_coords::JFFltMat)
+    # Evaluate the derivatives of the basis function matrix.
+    xim    = -(-1 + param_coords[1]);
+    etam   = -(-1 + param_coords[2]);
+    zetam  = -(-1 + param_coords[3]);
+    xip    = (1 + param_coords[1]);
+    etap   = (1 + param_coords[2]);
+    zetap  = (1 + param_coords[3]);
+    twoppp =(2+param_coords[1]+param_coords[2]+param_coords[3]);
+    twompp =(2-param_coords[1]+param_coords[2]+param_coords[3]);
+    twopmp =(2+param_coords[1]-param_coords[2]+param_coords[3]);
+    twoppm =(2+param_coords[1]+param_coords[2]-param_coords[3]);
+    twommp =(2-param_coords[1]-param_coords[2]+param_coords[3]);
+    twopmm =(2+param_coords[1]-param_coords[2]-param_coords[3]);
+    twompm =(2-param_coords[1]+param_coords[2]-param_coords[3]);
+    twommm =(2-param_coords[1]-param_coords[2]-param_coords[3]);
+    val =zeros(JFFlt,20,3)
+   val[:,1]= [1.0/8*etam*zetam*twoppp-1.0/8*xim*etam*zetam;
+           -1.0/8*etam*zetam*twompp+1.0/8*xip*etam*zetam;
+           -1.0/8*etap*zetam*twommp+1.0/8*xip*etap*zetam;
+           1.0/8*etap*zetam*twopmp-1.0/8*xim*etap*zetam;
+           1.0/8*etam*zetap*twoppm-1.0/8*xim*etam*zetap;
+           -1.0/8*etam*zetap*twompm+1.0/8*xip*etam*zetap;
+           -1.0/8*etap*zetap*twommm+1.0/8*xip*etap*zetap;
+           1.0/8*etap*zetap*twopmm-1.0/8*xim*etap*zetap;
+           -1.0/4*xip*etam*zetam+1.0/4*xim*etam*zetam;
+           1.0/4*etam*etap*zetam;
+           -1.0/4*xip*etap*zetam+1.0/4*xim*etap*zetam;
+           -1.0/4*etam*etap*zetam;
+           -1.0/4*xip*etam*zetap+1.0/4*xim*etam*zetap;
+           1.0/4*etam*etap*zetap;
+           -1.0/4*xip*etap*zetap+1.0/4*xim*etap*zetap;
+           -1.0/4*etam*etap*zetap;
+           -1.0/4*zetam*zetap*etam;
+           1.0/4*zetam*zetap*etam;
+           1.0/4*zetam*zetap*etap;
+           -1.0/4*zetam*zetap*etap];
+    val[:,2]= [1.0/8*xim*zetam*twoppp-1.0/8*xim*etam*zetam;
+             1.0/8*xip*zetam*twompp-1.0/8*xip*etam*zetam;
+             -1.0/8*xip*zetam*twommp+1.0/8*xip*etap*zetam;
+             -1.0/8*xim*zetam*twopmp+1.0/8*xim*etap*zetam;
+             1.0/8*xim*zetap*twoppm-1.0/8*xim*etam*zetap;
+             1.0/8*xip*zetap*twompm-1.0/8*xip*etam*zetap;
+             -1.0/8*xip*zetap*twommm+1.0/8*xip*etap*zetap;
+             -1.0/8*xim*zetap*twopmm+1.0/8*xim*etap*zetap;
+             -1.0/4*xim*xip*zetam;
+             -1.0/4*xip*etap*zetam+1.0/4*xip*etam*zetam;
+             1.0/4*xim*xip*zetam;
+             -1.0/4*xim*etap*zetam+1.0/4*xim*etam*zetam;
+             -1.0/4*xim*xip*zetap;
+             -1.0/4*xip*etap*zetap+1.0/4*xip*etam*zetap;
+             1.0/4*xim*xip*zetap;
+             -1.0/4*xim*etap*zetap+1.0/4*xim*etam*zetap;
+             -1.0/4*zetam*zetap*xim;
+             -1.0/4*zetam*zetap*xip;
+             1.0/4*zetam*zetap*xip;
+             1.0/4*zetam*zetap*xim];
+    val[:,3]= [1.0/8*xim*etam*twoppp-1.0/8*xim*etam*zetam;
+             1.0/8*xip*etam*twompp-1.0/8*xip*etam*zetam;
+             1.0/8*xip*etap*twommp-1.0/8*xip*etap*zetam;
+             1.0/8*xim*etap*twopmp-1.0/8*xim*etap*zetam;
+             -1.0/8*xim*etam*twoppm+1.0/8*xim*etam*zetap;
+             -1.0/8*xip*etam*twompm+1.0/8*xip*etam*zetap;
+             -1.0/8*xip*etap*twommm+1.0/8*xip*etap*zetap;
+             -1.0/8*xim*etap*twopmm+1.0/8*xim*etap*zetap;
+             -1.0/4*xim*xip*etam;
+             -1.0/4*etam*etap*xip;
+             -1.0/4*xim*xip*etap;
+             -1.0/4*etam*etap*xim;
+             1.0/4*xim*xip*etam;
+             1.0/4*etam*etap*xip;
+             1.0/4*xim*xip*etap;
+             1.0/4*etam*etap*xim;
+             -1.0/4*xim*etam*zetap+1.0/4*xim*etam*zetam;
+             -1.0/4*xip*etam*zetap+1.0/4*xip*etam*zetam;
+             -1.0/4*xip*etap*zetap+1.0/4*xip*etap*zetam;
+             -1.0/4*xim*etap*zetap+1.0/4*xim*etap*zetam];
+    return reshape(val,20,3);
+end
+
+function boundaryconn(self::FESetH20)
+    # Get boundary connectivity.
+    return  [self.conn[:,[1, 4, 3, 2, 12, 11, 10, 9]];
+             self.conn[:,[1, 2, 6, 5, 9, 18, 13, 17]];
+             self.conn[:,[2, 3, 7, 6, 10, 19, 14, 18]];
+             self.conn[:,[3, 4, 8, 7,  11, 20, 15, 19]];
+             self.conn[:,[4, 1, 5, 8, 12, 17, 16, 20]];
+             self.conn[:,[6, 7, 8, 5, 14, 15, 16, 13]]];
+end
+  
+function boundaryfe(self::FESetH20)
+    # Get  the constructor of the class of the  boundary finite element.
+    return FESetQ8;
+end
+
 #############################################################################
 # FESetH27
 #############################################################################
@@ -841,6 +1255,7 @@ type FESetH27 <: FESet3Manifold
         return self
     end
 end
+export FESetH27
 
 function bfun(self::FESetH27, param_coords::JFFltMat)
     # Evaluate the basis function matrix for an 8-node hexahedron.
@@ -944,6 +1359,132 @@ end
 function boundaryfe(self::FESetH27)
     # Get  the constructor of the class of the  boundary finite element.
     return FESetQ9;
+end
+
+#############################################################################
+# FESetT4
+#############################################################################
+
+type FESetT4 <: FESet3Manifold
+    # Connectivity array of the set.
+    #    The connectivity array lists the nodes that the finite element in
+    #  the set connects. The j-th element connects the nodes conn(j,:)
+    conn::JFIntMat
+    #        # Numerical label, supplied for each element in the set, or
+    #        # a single number to be applied to all elements
+    getotherdimension::Function
+    axisymm::Bool
+    label::JFIntVec
+
+    function    FESetT4(;conn::JFIntMat=[],other_dimension =1.0,axisymm::Bool=false,label =[])
+        if (size(conn,2)!=4)
+            error("Wrong number of nodes.");
+        end
+        # Needs to make a COPY of the input arrays
+        self =new(deepcopy(conn),(x,y,z)->  1.0,axisymm,deepcopy(label))
+        setotherdimension!(self,other_dimension)
+        setlabel!(self,label)
+        return self
+    end
+end
+export FESetT4
+
+function bfun(self::FESetT4, param_coords::JFFltMat)
+    # Evaluate the basis function matrix for an 3-node triangle.
+     val = [(1 - param_coords[1] - param_coords[2] - param_coords[3]);
+            param_coords[1]; 
+            param_coords[2]; 
+            param_coords[3]];
+    return reshape(val,4,1)
+end
+
+function bfundpar(self::FESetT4, param_coords::JFFltMat)
+    # Evaluate the derivatives of the basis function matrix.
+    val = [-1. -1. -1.; 
+           +1.  0.  0.; 
+           0. +1.  0.; 
+           0.  0. +1.];
+    return reshape(val,4,3)
+end
+
+function boundaryconn(self::FESetT4)
+    # Get boundary connectivity.
+    return [self.conn[:,[1, 3, 2]];self.conn[:,[1, 2, 4]];self.conn[:,[2, 3, 4]];self.conn[:,[1, 4, 3]]];
+end
+
+function boundaryfe(self::FESetT4)
+    # Get  the constructor of the class of the  boundary finite element.
+    return FESetT3;
+end
+
+#############################################################################
+# FESetT10
+#############################################################################
+
+type FESetT10 <: FESet3Manifold
+    # Connectivity array of the set.
+    #    The connectivity array lists the nodes that the finite element in
+    #  the set connects. The j-th element connects the nodes conn(j,:)
+    conn::JFIntMat
+    #        # Numerical label, supplied for each element in the set, or
+    #        # a single number to be applied to all elements
+    getotherdimension::Function
+    axisymm::Bool
+    label::JFIntVec
+
+    function    FESetT10(;conn::JFIntMat=[],other_dimension =1.0,axisymm::Bool=false,label =[])
+        if (size(conn,2)!=10)
+            error("Wrong number of nodes.");
+        end
+        # Needs to make a COPY of the input arrays
+        self =new(deepcopy(conn),(x,y,z)->  1.0,axisymm,deepcopy(label))
+        setotherdimension!(self,other_dimension)
+        setlabel!(self,label)
+        return self
+    end
+end
+export FESetT10
+
+function bfun(self::FESetT10, param_coords::JFFltMat)
+    # Evaluate the basis function matrix for an 3-node triangle.
+    r = param_coords[1];
+    s = param_coords[2];
+    t = param_coords[3];
+    val = [(1-r-s-t) * (2*(1-r-s-t)-1);
+           r * (2*r-1);
+           s * (2*s-1);
+           t * (2*t-1);
+           4*(1-r-s-t)*r;
+           4*r*s;
+           4*s*(1-r-s-t);
+           4*(1-r-s-t)*t;
+           4*r*t;
+           4*s*t;
+           ];
+    return reshape(val,10,1)
+end
+
+function bfundpar(self::FESetT10, param_coords::JFFltMat)
+    # Evaluate the derivatives of the basis function matrix.
+    r = param_coords[1];
+    s = param_coords[2];
+    t = param_coords[3];
+            val = [-3+4*r+4*s+4*t   4*r-1 0   0  -8*r+4-4*s-4*t  4*s -4*s  -4*t  4*t  0;
+                -3+4*r+4*s+4*t  0  4*s-1  0   -4*r   4*r 4-4*r-8*s-4*t -4*t  0 4*t;
+                -3+4*r+4*s+4*t  0  0  4*t-1   -4*r   0  -4*s -8*t+4-4*r-4*s  4*r  4*s
+                ]';
+    return reshape(val,10,3)
+end
+
+function boundaryconn(self::FESetT10)
+    # Get boundary connectivity.
+    return [self.conn[:,[1, 3, 2, 7, 6, 5]];self.conn[:,[1, 2, 4, 5, 9, 8]];self.conn[:,[2, 3, 4, 6, 10, 9]];self.conn[:,[3, 1, 4, 7, 8, 10]]];
+end  
+        
+
+function boundaryfe(self::FESetT10)
+    # Get  the constructor of the class of the  boundary finite element.
+    return FESetT6;
 end
 
 end

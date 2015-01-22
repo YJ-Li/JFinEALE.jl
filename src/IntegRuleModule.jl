@@ -145,6 +145,49 @@ function GaussRule (;order=1,dim=1)
 end
 
 
+# Class of tetrahedral quadrature rule.
+# Used for integration on the standard tetrahedron.
+type TetRule <: IntegRule
+    npts::JFInt
+    param_coords::JFFltMat
+    weights::JFFltMat
+end
+export TetRule
+
+function TetRule(;npts=1)
+    #    npts=number of points (1-- one-point rule, 3 -- three-point rule,
+    #      6 -- six point rule, 10 -- Strang 10 point, order 13, degree of precision 7, rule).
+
+    if npts==1 # integrates exactly linear polynomials
+        param_coords = [0.25,0.25,0.25];
+        weights = reshape([1.0]/6.0,1,1);
+    elseif npts==4 # integrates exactly quadratic polynomials
+        param_coords = [[0.13819660,0.13819660,0.13819660]; 
+                        [0.58541020,0.13819660,0.13819660]; 
+                        [0.13819660,0.58541020,0.13819660]; 
+                        [0.13819660,0.13819660,0.58541020]];;
+        weights = [ 0.041666666666666666667,  0.041666666666666666667,  0.041666666666666666667,  0.041666666666666666667];
+    elseif npts==5 #  Zienkiewicz #3.
+        a =   1.0 / 6.0;
+        b =   0.25;
+        c =   0.5;
+        d = - 0.8;
+        e =   0.45;
+        param_coords = [[b,b,b];
+                        [c,a,a];
+                        [a,c,a];
+                        [a,a,c];
+                        [a,a,a]];
+        weights = [d, e, e, e, e]/6;
+    else    
+       #nothing doing: this input is wrong
+       error( "Unknown number of integration points" )
+    end
+    rule  = TetRule(npts, param_coords, weights)
+    return  rule
+end
+
+      
 end
 
 
