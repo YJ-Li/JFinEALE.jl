@@ -9,7 +9,11 @@ const T3=5
 const Q4=9
 const T4=10
 const H8=12
+const L3=21
+const T6=22
 const Q8=23
+const T10=24
+const H20=25
 
 # Export mesh to a VTK 1.0 file as an unstructured grid.
 function vtkexportmesh{T<:FESet} (theFile::String, fens::FENodeSet, fes::T; opts...)
@@ -25,6 +29,14 @@ function vtkexportmesh{T<:FESet} (theFile::String, fens::FENodeSet, fes::T; opts
         Cell_type=H8
     elseif typeof(fes)==FESetQ8
         Cell_type=Q8
+    elseif typeof(fes)==FESetL3
+        Cell_type=L3
+    elseif typeof(fes)==FESetT6
+        Cell_type=T6
+    elseif typeof(fes)==FESetT10
+        Cell_type=T10
+    elseif typeof(fes)==FESetH20
+        Cell_type=H20
     else
         error("Cannot handle $(typeof(fes))")
     end
