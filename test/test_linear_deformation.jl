@@ -268,7 +268,7 @@ function pub_thick_pipe_axi()
     #println("$( idat  )")
     
     @test  abs(idat.r[1]-0.003126794919243112)<1.0e-9
-    @test  abs(idat.s[1]- -910911.9777008593)<1.0e-9
+    @test  abs(idat.s[1]- -910911.9777008593)<1.0e-2
 
     ## Discussion
     #
