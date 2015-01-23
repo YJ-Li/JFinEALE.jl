@@ -159,7 +159,7 @@ function TetRule(;npts=1)
     #      6 -- six point rule, 10 -- Strang 10 point, order 13, degree of precision 7, rule).
 
     if npts==1 # integrates exactly linear polynomials
-        param_coords = [0.25,0.25,0.25];
+        param_coords = reshape([0.25,0.25,0.25],1,3);
         weights = reshape([1.0]/6.0,1,1);
     elseif npts==4 # integrates exactly quadratic polynomials
         param_coords = [[0.13819660,0.13819660,0.13819660]; 
@@ -183,8 +183,8 @@ function TetRule(;npts=1)
        #nothing doing: this input is wrong
        error( "Unknown number of integration points" )
     end
-    rule  = TetRule(npts, param_coords, weights)
-    return  rule
+    
+    return  TetRule(npts, param_coords, reshape(weights,length(weights),1))
 end
 
       

@@ -142,6 +142,11 @@ export H27block
 export H8extrudeQ4
 export H8spheren
 
+include("MeshTetrahedronModule.jl")
+using JFinEALE.MeshTetrahedronModule
+export T4blocka
+export T4blockx
+
 include("ForceIntensityModule.jl")
 using JFinEALE.ForceIntensityModule
 export ForceIntensity
@@ -237,6 +242,7 @@ using JFinEALE.IntegRuleModule
 export IntegRule
 export TriRule
 export GaussRule
+export TetRule
 
 include("FEMMBaseModule.jl")
 using JFinEALE.FEMMBaseModule
