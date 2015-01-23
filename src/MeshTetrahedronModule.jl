@@ -79,7 +79,27 @@ using JFinEALE.MeshSelectionModule
 # end
 
 function T4blocka(Length::JFFlt,Width::JFFlt,Height::JFFlt,nL::JFInt,nW::JFInt,nH::JFInt)
-    # Tetrahedral mesh of a rectangular block; orientation 'a'.
+    return  T4block(Length::JFFlt,Width::JFFlt,Height::JFFlt,nL::JFInt,nW::JFInt,nH::JFInt,:a)
+end
+export T4blocka
+
+function T4blockb(Length::JFFlt,Width::JFFlt,Height::JFFlt,nL::JFInt,nW::JFInt,nH::JFInt)
+    return  T4block(Length::JFFlt,Width::JFFlt,Height::JFFlt,nL::JFInt,nW::JFInt,nH::JFInt,:b)
+end
+export T4blockb
+
+function T4blockca(Length::JFFlt,Width::JFFlt,Height::JFFlt,nL::JFInt,nW::JFInt,nH::JFInt)
+    return  T4block(Length::JFFlt,Width::JFFlt,Height::JFFlt,nL::JFInt,nW::JFInt,nH::JFInt,:ca)
+end
+export T4blockca
+
+function T4blockcb(Length::JFFlt,Width::JFFlt,Height::JFFlt,nL::JFInt,nW::JFInt,nH::JFInt)
+    return  T4block(Length::JFFlt,Width::JFFlt,Height::JFFlt,nL::JFInt,nW::JFInt,nH::JFInt,:cb)
+end
+export T4blockcb
+
+function T4block(Length::JFFlt,Width::JFFlt,Height::JFFlt,nL::JFInt,nW::JFInt,nH::JFInt,orientation::Symbol)
+    # Tetrahedral mesh of a rectangular block; orientation as given.
     #
     # function [fens,fes] = T4_blocka(Length,Width,Height,nL,nW,nH)
     #
@@ -98,9 +118,9 @@ function T4blocka(Length::JFFlt,Width::JFFlt,Height::JFFlt,nL::JFInt,nW::JFInt,n
     #         figure; drawmesh({fens,fes},'fes','facecolor','red'); hold on
     #
     # See also: T4_blockx,  T4_blockb,  T4_blockca,  T4_blockcb
-    return T4blockx(linspace(0.0,Length,nL+1),linspace(0.0,Width,nW+1),linspace(0.0,Height,nH+1),:a);
+    return T4blockx(linspace(0.0,Length,nL+1),linspace(0.0,Width,nW+1),linspace(0.0,Height,nH+1),orientation);
 end
-export T4blocka
+export T4block
 
 function T4blockx(xs::JFFltMat,ys::JFFltMat,zs::JFFltMat,orientation::Symbol)
     return T4blockx(vec(xs),vec(ys),vec(zs),orientation)
@@ -200,5 +220,78 @@ function T4blockx(xs::JFFltVec,ys::JFFltVec,zs::JFFltVec,orientation::Symbol)
     return fens,fes
 end
 export T4blockx
+
+function  T4toT10(fens::FENodeSetModule.FENodeSet, fes::FESetModule.FESetT4)
+    # Convert a mesh of Tetrahedron T4 (four-node) to Tetrahedron T10.
+    #
+    # function [fens,fes] = T4_to_T10(fens,fes)
+    #
+    # Examples: 
+    # [fens,fes] = T4_sphere(3.1,1);
+    # [fens,fes] = T4_to_T10(fens,fes);
+    # fens= onto_sphere(fens,3.1,connected_nodes(mesh_boundary(fes,[])));
+    # figure; drawmesh({fens,fes},'fes','facecolor','y'); hold on
+    #
+    nedges=6;
+    ec = [1  2; 2  3; 3  1; 4  1; 4  2; 4  3];
+    # Additional node numbers are numbered from here
+    newn=FENodeSetModule.count(fens)+1;
+    # make a search structure for edges
+    edges=MeshUtilModule.makecontainer();
+    for i= 1:size(fes.conn,1)
+        conn = fes.conn[i,:];
+        for J = 1:nedges
+            ev=conn[ec[J,:]];
+            newn = MeshUtilModule.addhyperface!(edges, ev, newn);
+        end
+    end
+    xyz1 =fens.xyz;             # Pre-existing nodes
+    # Allocate for vertex nodes plus edge nodes plus face nodes
+    xyz =zeros(JFFlt,newn-1,3);
+    xyz[1:size(xyz1,1),:] = xyz1; # existing nodes are copied over
+    # calculate the locations of the new nodes
+    # and construct the new nodes
+    for i in keys(edges)
+        C=edges[i];
+        for J = 1:length(C)
+            xyz[C[J].n,:]=mean(xyz[[i,C[J].o],:],1);
+        end
+    end
+    fens =FENodeSetModule.FENodeSet(xyz);
+    # construct new geometry cells
+    nconn=zeros(JFInt,size(fes.conn,1),10);
+    nc=1;
+    for i= 1:size(fes.conn,1)
+        conn = fes.conn[i,:];
+        econn=zeros(JFInt,1,nedges);
+        for J = 1:nedges
+            ev=conn[ec[J,:]];
+            h,n=MeshUtilModule.findhyperface!(edges, ev);
+            econn[J]=n;
+        end
+        nconn[nc,:] =[conn econn];
+        nc= nc+ 1;
+    end
+    fes = FESetModule.FESetT10(conn=nconn);
+    return fens,fes;
+end
+export T4toT10
+
+function T10block(Length::JFFlt,Width::JFFlt,Height::JFFlt,nL::JFInt,nW::JFInt,nH::JFInt; orientation::Symbol=:a)
+# Tetrahedral (T10) mesh of a rectangular block.
+#
+# function [fens,fes] = T10_block(Length,Width,Height,nL,nW,nH)
+#
+# Range =<0,Length> x <0,Width> x <0,Height>
+# Divided into elements: nL, nW, nH in the first, second, and
+# third direction (x,y,z).
+#
+# See also: T4_blocka
+
+    fens,fes = T4block(Length,Width,Height,nL,nW,nH,orientation);
+    fens,fes = T4toT10(fens,fes);
+    return fens,fes
+end
+export T10block
 
 end

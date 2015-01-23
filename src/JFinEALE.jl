@@ -145,7 +145,13 @@ export H8spheren
 include("MeshTetrahedronModule.jl")
 using JFinEALE.MeshTetrahedronModule
 export T4blocka
+export T4blockb
+export T4blockca
+export T4blockcb
+export T4block
 export T4blockx
+export T4toT10
+export T10block
 
 include("ForceIntensityModule.jl")
 using JFinEALE.ForceIntensityModule
