@@ -294,7 +294,7 @@ function update!{MR<:DeformationModelReduction2DStress}(::Type{MR},
         out = -sum(stress(1:2))/3;
     elseif output==:volstrain
         out = sum(Ev(1:2));     # actually this is probably incorrect
-        #for plane stress: the transverse stress is not accounted for
+        #for plane stress: the transverse strain is not accounted for
     elseif output==:princCauchy
         t=zeros(JFFlt,3,3)
         t = stress3vto3x3t!(stress,t);
@@ -370,6 +370,112 @@ function tangentmoduli!(::Type{DeformationModelReduction2DAxisymm},
     end
 end
 export tangentmoduli!
+
+function update!{MR<:DeformationModelReduction2DAxisymm}(::Type{MR},
+                        self::MaterialDeformationLinear, ms; context...)
+        # Update material state.
+        #
+        # function [out, newms] = update (self, ms, context)
+        #
+        # Update material state.  Return the updated material state, and the
+        # requested quantity (default is the stress).
+        #   Call as:
+        #     [out,newms] = update(m, ms, context)
+        #  where
+        #     m=material
+        #     ms = material state
+        #     context=structure
+        #        with mandatory fields
+        #           strain=strain vector  in the local material
+        #               directions (which may be the same as the global coordinate
+        #               directions)
+        #        and optional fields
+        #           output=type of quantity to output, and interpreted by the
+        #               particular material; [] is returned when the material does not
+        #               recognize the requested quantity to indicate uninitialized
+        #               value.  It can be tested with isempty ().
+        #                  output ='Cauchy' - Cauchy stress; this is the default
+        #                      when output type is not specified.
+        #                  output ='princCauchy' - principal Cauchy stress;
+        #                  output ='pressure' - pressure;
+        #                  output ='vol_strain' - volumetric strain;
+        #           outputRm=optional orientation matrix in which output should 
+        #               supplied   
+        #
+        #   It is assumed that stress is output in m-component vector 
+        #           form. m=3 for plane stress, m=4 for plane strain or axially 
+        #           symmetric
+        #   The output arguments are
+        #     out=requested quantity
+        #     newms=new material state; don't forget that if the update is final
+        #           the material state newms must be assigned and stored.  Otherwise
+        #           the material update is lost!
+    #
+    Ev=JFFlt[]                  # it is empty: we need to get it from context
+    output=:Cauchy
+    for arg in context
+        sy, val = arg
+        if sy==:strain
+            Ev=val
+        elseif sy==:output
+            output=val
+        end
+    end
+    D=zeros(JFFlt,4,4)
+    tangentmoduli!(MR,self,D; context...)
+    tSigma = thermalstress(MR,self; context...);
+    stress = D * Ev + tSigma;
+    # println("D=$( D  )")
+    #  println("Ev=$( Ev )")
+    # println("stress=$( stress )")
+    if output==:Cauchy
+        out = stress;
+    elseif output==:pressure
+        out = -sum(stress(1:3))/3;
+    elseif output==:volstrain
+        out = sum(Ev(1:3));  
+    elseif output==:princCauchy
+        t=zeros(JFFlt,3,3)
+        t = stress3vto3x3t!(stress,t);
+        ep=eig(t);
+        out =sort(ep[1]);    
+    else
+        out = stress;
+    end
+    newms = ms;
+    return out,newms;
+end
+
+function thermalstress{MR<:DeformationModelReduction2DAxisymm}(::Type{MR},
+                        self::MaterialDeformationLinear; context...)
+# Calculate vector of thermal stress components.
+#
+# function v = thermal_stress(self,context)
+#
+#   Call as:
+#     v = thermal_stress(m,context)
+#  where
+#     m=material
+#     context=structure; see the update() method
+    #
+    for arg in context
+        sy, val = arg
+        if sy==:dT
+            dT=val
+            D=zeros(JFFlt,4,4)
+            tangentmoduli!(MR, self, D; context...);# local material stiffness
+            v = -D*(dT[1]*[self.property.CTE; 0.0]);
+            return v
+            #     case 'strain'
+            #         D=  self.property.tangent_moduli(context);% need 3-D
+            #         v = -context.dT*[D(1:2, 1:2)*(alphas(1:2).*ones(2,1))+...
+            #             alphas(3)*D(1:2,3); 0];
+            
+        end
+    end
+    return  zeros(JFFlt, 4, 1);
+end
+export thermalstress
 
 ################################################################################
 # 1D model

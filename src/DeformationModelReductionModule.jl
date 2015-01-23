@@ -194,7 +194,7 @@ function Blmat!(::Type{DeformationModelReduction2DAxisymm},
     dim =size(c,2);
     #B = zeros(4,nfn*dim);
     for i= 1:nfn
-        for j=dim
+        for j=1:dim
             k=dim*(i-1);
             B[1,k+j]=gradN[i,1]*Rm[j,1]
             B[2,k+j]=gradN[i,2]*Rm[j,2]

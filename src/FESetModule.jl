@@ -199,7 +199,7 @@ function Jacobiansurface(self::FESet1Manifold, conn::JFIntMat, N::JFFltMat, J::J
     Jac=Jacobiancurve(self, conn, N, J, x);
     if self.axisymm
         xyz =N'*x;
-        Jac = Jac*2*pi*xyz(1);
+        Jac = Jac*2*pi*xyz[1];
     else
         Jac = Jac*self.getotherdimension(conn, N, x)::JFFlt;
     end

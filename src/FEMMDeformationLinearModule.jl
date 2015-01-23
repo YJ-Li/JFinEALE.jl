@@ -346,7 +346,7 @@ function inspectintegpoints{MR<:DeformationModelReduction,
             idat =inspector(idat,out,loc,pc[j,:]); 
         end # Loop over quadrature points
     end # Loop over elements
-    return;
+    return idat;
 end
 export inspectintegpoints
 
