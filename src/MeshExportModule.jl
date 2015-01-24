@@ -135,7 +135,9 @@ function vtkexportmesh (theFile::String,Connectivity,Points, Cell_type;
         fwrite(fid,cast(ctype,"int32"),"int32","n");
     end
 
+    did_point_data=false
     if scalars!=nothing
+        did_point_data=true
         print(fid,"POINT_DATA ",length(scalars),"\n");
         print(fid,"SCALARS ",scalars_name," double\n");
         print(fid,"LOOKUP_TABLE default\n");
@@ -149,13 +151,16 @@ function vtkexportmesh (theFile::String,Connectivity,Points, Cell_type;
     end
 
     if vectors!=nothing
-        print(fid,"POINT_DATA ",size(vectors,1),"\n");
+        if (!did_point_data)
+            print(fid,"POINT_DATA ",size(vectors,1),"\n");
+        end
         print(fid,"VECTORS ",vectors_name," double\n");
         #print(fid,"LOOKUP_TABLE default\n");
+        X=vectors
         if size(vectors, 2)<3
             X=   zeros(size (vectors,1),3)
-            X [:,1: size(vectors,2)] = vectors
         end
+        X[:,1:size(vectors,2)] = vectors
         if (!binary)
             for j= 1:size(X,1)
                 k=1;

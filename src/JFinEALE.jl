@@ -184,6 +184,11 @@ using JFinEALE.PropertyDeformationLinearIsoModule
 export PropertyDeformationLinearIso
 export tangentmoduli3d!
 
+include("PropertyDeformationLinearOrthoModule.jl")
+using JFinEALE.PropertyDeformationLinearOrthoModule
+export PropertyDeformationLinearOrtho
+export tangentmoduli3d!
+
 include("DeformationModelReductionModule.jl")
 using JFinEALE.DeformationModelReductionModule
 export DeformationModelReduction

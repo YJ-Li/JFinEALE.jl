@@ -5,6 +5,7 @@ using JFinEALE.DeformationModelReductionModule
 using JFinEALE.MaterialDeformationModule
 using JFinEALE.PropertyDeformationLinearModule
 using JFinEALE.PropertyDeformationLinearIsoModule
+using JFinEALE.PropertyDeformationLinearOrthoModule
 
 # % Class of linear elastic material for a variety of model reduction strain/stress states.
 # %
