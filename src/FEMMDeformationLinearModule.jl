@@ -99,15 +99,15 @@ function nzebcloadsstiffness{MR<:DeformationModelReduction,
               geom::NodalField{JFFlt},
               u::NodalField{JFFlt})
     assembler = SysvecAssembler()
-    return  nzebcloadsstiffness(self,assembler,geom,u);
+    return  nzebcloadsstiffness(MR,self,assembler,geom,u);
 end
 export nzebcloadsstiffness
 
 function nzebcloadsstiffness{MR<:DeformationModelReduction,
-    S<:FESet,A<:SysmatAssemblerBase}(::Type{MR},self::FEMMDeformationLinear{S}, assembler::A,
+    S<:FESet,A<:SysvecAssemblerBase}(::Type{MR},self::FEMMDeformationLinear{S}, assembler::A,
                                      geom::NodalField{JFFlt},
                                      u::NodalField{JFFlt})
-    #  Compute load vector for nonzero EBC for fixed temperature.
+    #  Compute load vector for nonzero EBC for fixed displacement.
     # 
     # %    Arguments
     # %      assembler =  descendent of sysvec_assembler
@@ -136,14 +136,15 @@ function nzebcloadsstiffness{MR<:DeformationModelReduction,
     J::JFFltMat =eye(JFFlt,sdim,mdim); # Jacobian matrix -- used as a buffer
     RmTJ::JFFltMat =zeros(JFFlt,mdim,mdim); # intermediate result -- used as a buffer
     gradN::JFFltMat =zeros(JFFlt,nne,mdim); # intermediate result -- used as a buffer
+    pu::JFFltMat=zeros(JFFlt,Kedim,1);
     D::JFFltMat =zeros(JFFlt,nstr,nstr); # material stiffness matrix -- used as a buffer
     B::JFFltMat =zeros(JFFlt,nstr,Kedim); # strain-displacement matrix -- used as a buffer
     mo::MaterialOrientation=self.femmbase.mo;
     tangentmoduli!(MR,self.material,D;loc=[0.0]);# Moduli in material orientation
-    startassembly!(assembler, Kedim, Kedim, nfes, u.nfreedofs, u.nfreedofs);
+    startassembly!(assembler, u.nfreedofs);
     for i=1:nfes # Loop over elements
         getconn!(fes,conn,i);
-        gathervaluesasmat!(u,pu,conn);# retrieve element displacement vector
+        gathervaluesasvec!(u,pu,conn);# retrieve element displacement vector
         if norm(pu) != 0     # Is the load nonzero?
             gathervaluesasmat!(geom,x,conn);# retrieve element coordinates
             fill!(Ke, 0.0); # Initialize element matrix
@@ -167,7 +168,7 @@ function nzebcloadsstiffness{MR<:DeformationModelReduction,
                     end
                 end
             end # Loop over quadrature points
-            gatherdofnumsasvec!(temp,dofnums,conn); # retrieve degrees of freedom
+            gatherdofnumsasvec!(u,dofnums,conn); # retrieve degrees of freedom
             assemble!(assembler, -Ke*pu, dofnums); # assemble element load vector
         end
     end # Loop over elements

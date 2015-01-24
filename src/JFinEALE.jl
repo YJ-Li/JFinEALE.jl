@@ -299,6 +299,9 @@ using JFinEALE.AcousticsAlgorithmModule
 include("HeatDiffusionAlgorithmModule.jl")
 using JFinEALE.HeatDiffusionAlgorithmModule
 
+include("DeformationLinearAlgorithmModule.jl")
+using JFinEALE.DeformationLinearAlgorithmModule
+
 end
 
 

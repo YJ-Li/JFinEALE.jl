@@ -181,6 +181,16 @@ export numberdofs!
 
 # Set the EBCs (essential boundary conditions).
 function setebc!{T<:Number}(self::NodalField,
+                            fenids::JFInt,
+                            is_fixed::Bool,
+                            comp::JFInt,
+                            val::T)
+    return setebc!(self, [fenids], [is_fixed], [comp], [val])
+end
+export setebc!
+    
+# Set the EBCs (essential boundary conditions).
+function setebc!{T<:Number}(self::NodalField,
                             fenids::JFIntVec,
                             is_fixed::Union(BitArray, Array{Bool}),
                             comp::JFIntVec,

@@ -139,7 +139,7 @@ function nzebcloadsconductivity{S<:FESet,A<:SysvecAssemblerBase}(self::FEMMHeatD
     # Now loop over all finite elements in the set
     for i=1:nfes # Loop over elements
         getconn!(fes,conn,i);
-        gathervaluesasmat!(temp,pT,conn);# retrieve element coordinates
+        gathervaluesasvec!(temp,pT,conn);# retrieve element coordinates
         if norm(pT) != 0     # Is the load nonzero?
             gathervaluesasmat!(geom,x,conn);# retrieve element coordinates
             fill!(Ke, 0.0);
