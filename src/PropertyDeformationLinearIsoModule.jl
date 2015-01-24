@@ -3,6 +3,7 @@ module PropertyDeformationLinearIsoModule
 
 using JFinEALE.JFFoundationModule
 using JFinEALE.PropertyDeformationLinearModule
+import JFinEALE.PropertyDeformationLinearModule.tangentmoduli3d!
 
 
 # Class of properties for linearly elastic isotropic homogeneous materials. 
