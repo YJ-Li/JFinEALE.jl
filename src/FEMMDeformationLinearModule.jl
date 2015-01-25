@@ -214,15 +214,11 @@ function mass{MR<:DeformationModelReduction,
     rho::JFFlt =self.material.property.mass_density; # mass density
     NexpTNexp=Array(JFFltMat,1,npts);# basis f. matrix -- used as a buffer
     for j=1:npts # This quantity is the same for all quadrature points
-       #   println("$j  8888888888888888888888888888888888888888888888888888888888 ")
-       # println(" $( Ns[j]  )")
         Nexp= zeros(JFFlt,ndn,Medim)
         for l1 = 1:nne
             Nexp[1:ndn,(l1-1)*ndn+1:(l1)*ndn]=eye(ndn)*Ns[j][l1];
         end
         NexpTNexp[j]=Nexp'*Nexp;
-       # println(" $( NexpTNexp[j]  )")
-       #  println("   ")
     end
     startassembly!(assembler, Medim, Medim, nfes, u.nfreedofs, u.nfreedofs);
     for i=1:nfes # Loop over elements
@@ -233,9 +229,8 @@ function mass{MR<:DeformationModelReduction,
             At_mul_B!(loc,Ns[j],x);# Quadrature points location
             At_mul_B!(J, x, gradNparams[j]); # calculate the Jacobian matrix 
             Jac = FESetModule.Jacobianvolume(fes,conn, Ns[j], J, x);# Jacobian
-            # Me = Me + (Nexp'*Nexp) * (rho * Jac * w(j));
             thefactor::JFFlt =(rho*Jac*w[j]);
-            for nx=1:Medim # Do: Me = Me + (B'*(D*(Jac*w[j]))*B); 
+            for nx=1:Medim # Do: Me = Me + (Nexp'*Nexp) * (rho * Jac * w(j));
                 for mx=1:Medim
                     Me[mx,nx] = Me[mx,nx] + NexpTNexp[j][mx,nx]*thefactor
                 end
