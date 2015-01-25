@@ -211,14 +211,18 @@ function mass{MR<:DeformationModelReduction,
     dofnums::JFIntMat=zeros(JFInt,1,Medim); # degree of freedom array -- used as a buffer
     loc::JFFltMat =zeros(JFFlt,1,sdim); # quadrature point location -- used as a buffer
     J::JFFltMat =eye(JFFlt,sdim,mdim); # Jacobian matrix -- used as a buffer
-    rho::JFFltMat =self.material.property.mass_density; # mass density
+    rho::JFFlt =self.material.property.mass_density; # mass density
     NexpTNexp=Array(JFFltMat,1,npts);# basis f. matrix -- used as a buffer
     for j=1:npts # This quantity is the same for all quadrature points
+       #   println("$j  8888888888888888888888888888888888888888888888888888888888 ")
+       # println(" $( Ns[j]  )")
         Nexp= zeros(JFFlt,ndn,Medim)
         for l1 = 1:nne
-            Nexp[1:ndn,(l1-1)*ndn+1:(l1)*ndn]=eye(dim)*Ns{j}[l];
+            Nexp[1:ndn,(l1-1)*ndn+1:(l1)*ndn]=eye(ndn)*Ns[j][l1];
         end
         NexpTNexp[j]=Nexp'*Nexp;
+       # println(" $( NexpTNexp[j]  )")
+       #  println("   ")
     end
     startassembly!(assembler, Medim, Medim, nfes, u.nfreedofs, u.nfreedofs);
     for i=1:nfes # Loop over elements

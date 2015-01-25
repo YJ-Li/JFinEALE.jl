@@ -9,7 +9,7 @@ import JFinEALE.PropertyDeformationLinearModule.tangentmoduli3d!
 # Class of properties for linearly elastic isotropic homogeneous materials. 
 
 type PropertyDeformationLinearOrtho<:PropertyDeformationLinear
-    rho::JFFlt                  # mass density
+    mass_density::JFFlt                  # mass density
     E1::JFFlt
     E2::JFFlt
     E3::JFFlt

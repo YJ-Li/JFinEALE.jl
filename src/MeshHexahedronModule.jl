@@ -571,5 +571,87 @@ function H8spheren(radius::JFFlt,nperradius::JFInt)
 end
 export H8spheren
 
+function H20block(Length::JFFlt,Width::JFFlt,Height::JFFlt,nL::JFInt,nW::JFInt,nH::JFInt)
+# Mesh of a 3-D block of H20 finite elements
+#
+# Arguments:
+# Length,Width,Height= dimensions of the mesh in Cartesian coordinate axes,
+# smallest coordinate in all three directions is  0 (origin)
+# nL,nW,nH=number of elements in the three directions
+#
+# Range in xyz =<0,Length> x <0,Width> x <0,Height>
+# Divided into elements: nL, nW, nH in the first, second, and
+# third direction (x,y,z). Finite elements of type H20.
+#
+# Output:
+# fens= finite element node set
+# fes = finite element set
+#
+#
+# Examples: 
+#     [fens,fes] = H20_block(2,3,4, 1,2,3);
+#     drawmesh({fens,fes},'nodes','fes','facecolor','none'); hold on
+#
+# See also: H8_block, H8_to_H20
+#
+    fens,fes = H8block(Length,Width,Height,nL,nW,nH);
+    fens,fes = H8toH20(fens,fes);
+end
+export H20block
+
+function   H8toH20(fens::FENodeSetModule.FENodeSet, fes::FESetModule.FESetH8)
+# % Convert a mesh of hexahedra H8 to hexahedra H20.
+# %
+# % Arguments and
+# % Output:
+# % fens= finite element node set
+# % fes = finite element set
+# %
+    nedges=12;
+    ec = [1   2; 2   3; 3   4; 4   1; 5   6; 6   7; 7   8; 8   5; 1   5; 2   6; 3   7; 4   8;];
+    conns = fes.conn;
+    # Additional node numbers are numbered from here
+    newn=FENodeSetModule.count(fens)+1;
+    # make a search structure for edges
+    edges=MeshUtilModule.makecontainer();
+    for i= 1:size(conns,1)
+        conn = conns[i,:];
+        for J = 1:nedges
+            ev=conn[ec[J,:]];
+            newn = MeshUtilModule.addhyperface!(edges, ev, newn);
+        end
+    end
+     xyz1 =fens.xyz;             # Pre-existing nodes
+   # Allocate for vertex nodes plus edge nodes plus face nodes
+    xyz =zeros(JFFlt,newn-1,3);
+    xyz[1:size(xyz1,1),:] = xyz1; # existing nodes are copied over
+    # calculate the locations of the new nodes
+    # and construct the new nodes
+    for i in keys(edges)
+        C=edges[i];
+        for J = 1:length(C)
+            xyz[C[J].n,:]=mean(xyz[[i,C[J].o],:],1);
+        end
+    end
+   # construct new geometry cells
+    nconns =zeros(JFInt,size(conns,1),20);
+    nc=1;
+    for i= 1:size(conns,1)
+        conn = conns[i,:];
+        econn=zeros(JFInt,1,nedges);
+        for J = 1:nedges
+            ev=conn[ec[J,:]];
+            h,n=MeshUtilModule.findhyperface!(edges, ev);
+            econn[J]=n;
+        end
+        nconns[nc,:] =[conn econn];
+        nc= nc+ 1;
+    end
+    fens =FENodeSetModule.FENodeSet(xyz);
+    fes = FESetModule.FESetH20(conn=nconns) ;
+    return fens,fes;
+end
+export H8toH20
+
 end
 

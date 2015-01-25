@@ -141,6 +141,8 @@ export H8hexahedron
 export H27block
 export H8extrudeQ4
 export H8spheren
+export H20block
+export H8toH20
 
 include("MeshTetrahedronModule.jl")
 using JFinEALE.MeshTetrahedronModule
