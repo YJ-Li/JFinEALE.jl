@@ -33,6 +33,36 @@ export nstrains
 nstrains(::Type{DeformationModelReduction3D})=6;
 export nstrains
 
+function stresscomponentmap(::Type{DeformationModelReduction1D})
+    a=Dict{Symbol,Int64}(); a[:x]=1;
+    return a
+end
+export stresscomponentmap
+
+function stresscomponentmap(::Type{DeformationModelReduction2DStrain})
+    a=Dict{Symbol,Int64}(); a[:x]=1;  a[:y]=2;  a[:xy]=3;
+    return a
+end
+export stresscomponentmap
+
+function stresscomponentmap(::Type{DeformationModelReduction2DStress})
+    a=Dict{Symbol,Int64}(); a[:x]=1;  a[:y]=2;  a[:xy]=3;
+    return a
+end
+export stresscomponentmap
+
+function stresscomponentmap(::Type{DeformationModelReduction2DAxisymm})
+    a=Dict{Symbol,Int64}(); a[:x]=1;  a[:y]=2;  a[:z]=3;  a[:xy]=4;
+    return a
+end
+export stresscomponentmap
+
+function stresscomponentmap(::Type{DeformationModelReduction3D})
+    a=Dict{Symbol,Int64}(); a[:x]=1;  a[:y]=2;  a[:z]=3;  a[:xy]=4; a[:xz]=5; a[:yz]=6;
+    return a
+end
+export stresscomponentmap
+
 function Blmat!(::Type{DeformationModelReduction1D},B::JFFltMat,N::JFFltMat,gradN::JFFltMat,c::JFFltMat,Rm::JFFltMat)
     # Compute the strain-displacement matrix for a one-manifold element.
     #

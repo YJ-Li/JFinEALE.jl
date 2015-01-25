@@ -1,30 +1,19 @@
 module DeformationLinearAlgorithmModule
 
-using JFinEALE.JFFoundationModule
-using JFinEALE.FESetModule
-using JFinEALE.NodalFieldModule
-using JFinEALE.ForceIntensityModule
-using JFinEALE.PropertyDeformationLinearModule
-using JFinEALE.MaterialDeformationLinearModule
-using JFinEALE.MaterialOrientationModule
-using JFinEALE.FEMMBaseModule
-using JFinEALE.FEMMDeformationLinearModule
-using JFinEALE.DeformationModelReductionModule
+using JFinEALE
 
 function linearstatics(modeldata::ModelDataDictionary)
     # Algorithm for static linear deformation (stress) analysis.
     #
-    # function model_data = deformation_linear_statics(model_data)
-    #
     # Arguments
-    # model_data = struct  with fields as follows.
+    # modeldata = dictionary  with fields as follows.
     #
     # model_data.fens = finite element node set (mandatory)
     #
     # For each region (connected piece of the domain made of a particular material),
     # mandatory:
-    # model_data.region= cell array of struct with the attributes, each region 
-    #           gets a struct with attributes
+    # model_data.region= array of dictionaries, each region 
+    #           needs to define
     #     fes= finite element set that covers the region
     #     integration_rule =integration rule
     #     property = material property object
@@ -196,7 +185,7 @@ function linearstatics(modeldata::ModelDataDictionary)
         # Loads due to the essential boundary conditions on the displacement field
         boundary_conditions = get(modeldata, "boundary_conditions", nothing);
         essential = get(boundary_conditions, "essential", nothing);
-        if (essential!= nothing)
+        if (essential!= nothing) # there was at least one EBC applied
             F = F + nzebcloadsstiffness(modelreduction, femm, geom, u);
         end
     end
@@ -277,6 +266,123 @@ function linearstatics(modeldata::ModelDataDictionary)
     return modeldata            # ... And return the updated model data
 end
     
+
+function exportdeformation(modeldata::ModelDataDictionary)
+    # Export the deformation for visualization in Paraview.
+    # 
+    # Arguments
+    # model_data= model data as produced by linearstatics()
+    # model_data.postprocessing = optional struct with optional fields
+    #     u_scale = deflection scale, default 1.0;
+    #     camera  = camera, default is [] which means use the default 
+    #           orientation of the view;
+    #     draw_mesh= should the mesh be rendered?  Boolean.  Default true.
+    #     cmap= colormap (default: jet)
+    #     boundary_only= should we plot only the boundary?  Boolean.  Default true.
+    #     edgecolor= color used for the mesh edges
+    # Output
+    # model_data = structure on input updated with
+    # model_data.postprocessing.gv=graphic viewer used to display the data
+    #    
+
+    # Defaults
+    boundary_only= false;
+    ffile= "deformation"
+    # Let's have a look at what's been specified
+    postprocessing = get(modeldata, "postprocessing", nothing); 
+    if (postprocessing!=nothing)
+        boundary_only=  get(postprocessing, "boundary_only", boundary_only);
+          ffile=  get(postprocessing, "file", ffile); 
+    end
+    
+    fens=get(()->error("Must get fens!"), modeldata, "fens")
+    geom = get(()->error("Must get geometry field!"), modeldata, "geom");  
+    u = get(()->error("Must get displacement field!"), modeldata, "u"); 
+    
+    # Plot the surface for each region
+    region=get(()->error("Must get region!"), modeldata, "region")
+    for i=1:length(region)
+        femm=get(region[i], "femm", nothing);
+        rfile = ffile * "$i" * ".vtk";
+        if boundary_only
+            bfes= meshboundary(femm.femmbase.fes);
+            vtkexportmesh (rfile, fens, bfes;  vectors=u.values, vectors_name ="u")
+        else
+            vtkexportmesh (rfile, fens, femm.femmbase.fes;  vectors=u.values, vectors_name ="u")
+        end
+    end
+    
+    return modeldata
+end
+
+
+function exportstress(modeldata::ModelDataDictionary)
+    # Export the stress/deformation for visualization in Paraview.
+    # 
+    # Arguments
+    # model_data= model data as produced by linearstatics()
+    # model_data.postprocessing = optional struct with optional fields
+    #     u_scale = deflection scale, default 1.0;
+    #     camera  = camera, default is [] which means use the default 
+    #           orientation of the view;
+    #     draw_mesh= should the mesh be rendered?  Boolean.  Default true.
+    #     cmap= colormap (default: jet)
+    #     boundary_only= should we plot only the boundary?  Boolean.  Default true.
+    #     edgecolor= color used for the mesh edges
+    # Output
+    # model_data = structure on input updated with
+    # model_data.postprocessing.gv=graphic viewer used to display the data
+    #    
+
+    # Defaults
+    boundary_only= false;
+    ffile= "stress"
+    output=:Cauchy
+    component=1
+    outputRm=MaterialOrientation()
+    # Let's have a look at what's been specified
+    postprocessing = get(modeldata, "postprocessing", nothing); 
+    if (postprocessing!=nothing)
+        boundary_only=  get(postprocessing, "boundary_only", boundary_only);
+        ffile=  get(postprocessing, "file", ffile);
+        output=  get(postprocessing, "output", output);
+        component=  get(postprocessing, "component", component);
+        outputRm=  get(postprocessing, "outputRm", outputRm);
+    end
+    
+    fens=get(()->error("Must get fens!"), modeldata, "fens")
+    geom = get(()->error("Must get geometry field!"), modeldata, "geom");  
+    u = get(()->error("Must get displacement field!"), modeldata, "u"); 
+    modelreduction = get(()->error("Must get model reduction!"), modeldata, "modelreduction"); 
+
+    
+    if (typeof(component)==Symbol)
+        componentnum=stresscomponentmap(modelreduction)[component]
+    else
+        componentnum=component
+    end
+    
+    # Plot the surface for each region
+    region=get(()->error("Must get region!"), modeldata, "region")
+    for i=1:length(region)
+        femm=get(region[i], "femm", nothing);
+        rfile = ffile * string(output) * string(component) * "$i" * ".vtk";
+        fld= fieldfromintegpoints(modelreduction,femm, 
+                          geom, u, output, componentnum)
+        if boundary_only
+            bfes= meshboundary(femm.femmbase.fes);
+            vtkexportmesh (rfile, fens, bfes;
+                           scalars=fld.values, scalars_name=string(output)*string(component),
+                           vectors=u.values, vectors_name ="u")
+        else
+            vtkexportmesh (rfile, fens, femm.femmbase.fes;
+                           scalars=fld.values, scalars_name=string(output)*string(component),
+                           vectors=u.values, vectors_name ="u")
+        end
+    end
+    
+    return modeldata
+end
 
 
 end

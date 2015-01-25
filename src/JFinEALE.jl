@@ -198,6 +198,7 @@ export DeformationModelReduction2DStress
 export DeformationModelReduction2DAxisymm
 export DeformationModelReduction3D
 export nstrains
+export stresscomponentmap
 export Blmat!
 
 include("MaterialDeformationModule.jl")
