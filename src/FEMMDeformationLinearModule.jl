@@ -22,18 +22,18 @@ end
 export FEMMDeformationLinear
 
 function stiffness{MR<:DeformationModelReduction,
-    S<:FESet}(::Type{MR},self::FEMMDeformationLinear{S}, 
-              geom::NodalField{JFFlt}, u::NodalField{JFFlt})
+    S<:FESet,T<:Number}(::Type{MR},self::FEMMDeformationLinear{S}, 
+              geom::NodalField{JFFlt}, u::NodalField{T})
     assembler = SysmatAssemblerSparseSymm();
     return stiffness(MR,self,assembler,geom,u);
 end
 export stiffness
 
 function stiffness{MR<:DeformationModelReduction,
-    S<:FESet,A<:SysmatAssemblerBase}(::Type{MR},
+    S<:FESet,A<:SysmatAssemblerBase,T<:Number}(::Type{MR},
                                      self::FEMMDeformationLinear{S},
                                      assembler::A,
-                                     geom::NodalField{JFFlt}, u::NodalField{JFFlt})
+                                     geom::NodalField{JFFlt}, u::NodalField{T})
     #  Compute the stiffness matrix.
     #
 
@@ -95,18 +95,18 @@ export stiffness
 
 
 function nzebcloadsstiffness{MR<:DeformationModelReduction,
-    S<:FESet}(::Type{MR},self::FEMMDeformationLinear{S}, 
+    S<:FESet,T<:Number}(::Type{MR},self::FEMMDeformationLinear{S}, 
               geom::NodalField{JFFlt},
-              u::NodalField{JFFlt})
+              u::NodalField{T})
     assembler = SysvecAssembler()
     return  nzebcloadsstiffness(MR,self,assembler,geom,u);
 end
 export nzebcloadsstiffness
 
 function nzebcloadsstiffness{MR<:DeformationModelReduction,
-    S<:FESet,A<:SysvecAssemblerBase}(::Type{MR},self::FEMMDeformationLinear{S}, assembler::A,
+    S<:FESet,A<:SysvecAssemblerBase,T<:Number}(::Type{MR},self::FEMMDeformationLinear{S}, assembler::A,
                                      geom::NodalField{JFFlt},
-                                     u::NodalField{JFFlt})
+                                     u::NodalField{T})
     #  Compute load vector for nonzero EBC for fixed displacement.
     # 
     # %    Arguments
@@ -178,18 +178,18 @@ end
 export nzebcloadsstiffness
 
 function mass{MR<:DeformationModelReduction,
-    S<:FESet}(::Type{MR},self::FEMMDeformationLinear{S}, 
-              geom::NodalField{JFFlt}, u::NodalField{JFFlt})
+    S<:FESet,T<:Number}(::Type{MR},self::FEMMDeformationLinear{S}, 
+              geom::NodalField{JFFlt}, u::NodalField{T})
     assembler = SysmatAssemblerSparseSymm();
     return mass(MR,self,assembler,geom,u);
 end
 export mass
 
 function mass{MR<:DeformationModelReduction,
-    S<:FESet,A<:SysmatAssemblerBase}(::Type{MR},
+    S<:FESet,A<:SysmatAssemblerBase,T<:Number}(::Type{MR},
                                      self::FEMMDeformationLinear{S},
                                      assembler::A,
-                                     geom::NodalField{JFFlt}, u::NodalField{JFFlt})
+                                     geom::NodalField{JFFlt}, u::NodalField{T})
     #  Compute the mass matrix.
     #
 
@@ -244,8 +244,8 @@ end
 export mass
 
 function inspectintegpoints{MR<:DeformationModelReduction,
-    S<:FESet}(::Type{MR},self::FEMMDeformationLinear{S}, 
-              geom::NodalField{JFFlt}, u::NodalField{JFFlt},
+    S<:FESet,T<:Number}(::Type{MR},self::FEMMDeformationLinear{S}, 
+              geom::NodalField{JFFlt}, u::NodalField{T},
               felist::JFIntVec,
               inspector::Function, idat; context...)
     dT=NodalField(name ="dT",data =zeros(JFFlt,nfens(geom),1)) # zero difference in temperature
@@ -254,8 +254,8 @@ end
 export inspectintegpoints
 
 function inspectintegpoints{MR<:DeformationModelReduction,
-    S<:FESet}(::Type{MR},self::FEMMDeformationLinear{S}, 
-              geom::NodalField{JFFlt}, u::NodalField{JFFlt},
+    S<:FESet,T<:Number}(::Type{MR},self::FEMMDeformationLinear{S}, 
+              geom::NodalField{JFFlt}, u::NodalField{T},
               dT::NodalField{JFFlt},
               felist::JFIntVec,
               inspector::Function, idat; context...)
@@ -351,8 +351,8 @@ end
 export inspectintegpoints
 
 function fieldfromintegpoints{MR<:DeformationModelReduction,
-    S<:FESet}(::Type{MR},self::FEMMDeformationLinear{S}, 
-              geom::NodalField{JFFlt}, u::NodalField{JFFlt},
+    S<:FESet,T<:Number}(::Type{MR},self::FEMMDeformationLinear{S}, 
+              geom::NodalField{JFFlt}, u::NodalField{T},
               output, component; context...)
     dT=NodalField(name ="dT",data =zeros(JFFlt,nfens(geom),1)) # zero difference in temperature
     return fieldfromintegpoints(MR,self,geom,u,dT, output, component; context...)
@@ -360,8 +360,8 @@ end
 export fieldfromintegpoints
 
 function fieldfromintegpoints{MR<:DeformationModelReduction,
-    S<:FESet}(::Type{MR},self::FEMMDeformationLinear{S}, 
-              geom::NodalField{JFFlt}, u::NodalField{JFFlt},
+    S<:FESet,T<:Number}(::Type{MR},self::FEMMDeformationLinear{S}, 
+              geom::NodalField{JFFlt}, u::NodalField{T},
               dT::NodalField{JFFlt}, output, component; context...)
     
 # Input arguments
