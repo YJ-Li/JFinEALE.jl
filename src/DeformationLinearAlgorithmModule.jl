@@ -384,5 +384,286 @@ function exportstress(modeldata::ModelDataDictionary)
     return modeldata
 end
 
+function modal(modeldata::ModelDataDictionary)
+# Modal (free-vibration) analysis solver.
+#
+# function model_data = deformation_linear_modal_analysis(model_data)
+#
+# Arguments
+# model_data = struct  with fields as follows.
+#
+# model_data.fens = finite element node set (mandatory)
+#
+# For each region (connected piece of the domain made of a particular material),
+# mandatory:
+# model_data.region= cell array of struct with the attributes, each region 
+#           gets a struct with attributes
+#     fes= finite element set that covers the region
+#     integration_rule =integration rule; alternatively, one could 
+#           specify separate integration rules for the stiffness and 
+#           for the mass matrix.
+#     integration_rule_stiffness =integration rule for the stiffness
+#     integration_rule_mass =integration rule for the mass
+#     property = material property hint (optional): 'isotropic' (default), 
+#           'orthotropic',...
+#        For isotropic property (default):
+#     E = material Young's modulus
+#     nu = material Poisson's ratio
+#        For orthotropic property:
+#     E1, E2, E3 = material Young's modulus 
+#           in the three material directions
+#     G12, G13, G23 = material shear modulus 
+#           between the three material directions
+#     nu12, nu13, nu23 = material Poisson's ratio
+#     rho = mass density (optional for statics, mandatory for dynamics)
+#        If the region is for a two-dimensional model (plane strain, plane
+#        stress, or axially symmetric) the attribute reduction  needs to be
+#        specified.
+#     reduction = 'strain' or 'stress' or 'axisymm'
+#
+#        If the material orientation matrix is not the identity and needs
+#        to be supplied,  include the attribute
+#     Rm= constant orientation matrix or a handle  to a function to compute
+#           the orientation matrix (see the class femm_base).
+#
+# Example:
+#     clear region
+#     region.E =E;
+#     region.nu=nu;
+#     region.fes= fes;
+#     region.integration_rule = gauss_rule (struct('dim', 3, 'order', 2));
+#     model_data.region{1} =region;
+#
+# Example:
+#     clear region
+#     region.property = 'orthotropic';
+#     region.rho =rho;
+#     region.E1 =E1;     region.E2 =E2;     region.E3 =E3;
+#     region.G12=G12;     region.G13=G13;     region.G23=G23;
+#     region.nu12=nu12;     region.nu13=nu13;     region.nu23=nu23;
+#     region.fes= fes;# set of finite elements for the interior of the domain
+#     region.integration_rule = gauss_rule (struct('dim', 3, 'order', 2));
+#     region.Rm =@LayerRm;
+#     model_data.region{1} =region;
+#     
+# For essential boundary conditions (optional):
+# model_data.boundary_conditions.essential = cell array of struct,
+#           each piece of surface with essential boundary condition gets one
+#           element of the array with a struct with the attributes
+#           as recognized by the set_ebc() method of nodal_field
+#     component=which component is affected (if not supplied, 
+#           or if supplied as empty default is all components)
+#     fixed_value=is always  0.0 (only that makes sense in modal analysis)
+#     fes = finite element set on the boundary to which 
+#                       the condition applies
+#               or alternatively
+#     node_list = list of nodes on the boundary to which 
+#                       the condition applies
+#           Only one of fes and node_list needs to be given.
+#    
+# Example:
+#     clear essential
+#     essential.component= [1,3];
+#     essential.fixed_value= 0;
+#     essential.node_list = [[fenode_select(fens, struct('box', [0,a,0,0,-Inf,Inf],...
+#         'inflate',tolerance))],[fenode_select(fens, struct('box', [0,a,b,b,-Inf,Inf],...
+#         'inflate',tolerance))]];;
+#     model_data.boundary_conditions.essential{2} = essential;
+#
+# Example:
+#     clear essential
+#     essential.component= [1];
+#     essential.fixed_value= 0;
+#     essential.fes = mesh_boundary(fes);
+#     model_data.boundary_conditions.essential{1} = essential;
+#
+# For multi point constraints (MPC) (optional):
+# model_data.mpc= cell array of structs, each for one MPC.
+#      mpc.node_list = list of node numbers involved in the MPC,
+#      mpc.dof_list= numbers of degrees of freedom for the nodes above,
+#      mpc.umultipliers=multipliers for the nodes above, 
+#      mpc.penfact=the penalty factor to multiply  the constraint matrix,
+#          The MPC looks like this: sum_i m_i u_{dof(i),node(i)} =0
+#          where m_i is the multiplier.
+#
+# Control parameters:
+# model_data.neigvs = number of eigenvalues/eigenvectors to compute
+# model_data.omega_shift= angular frequency shift for mass shifting
+# model_data.renumber = true or false flag (default is true)
+# model_data.renumbering_method = optionally choose the renumbering 
+#       method  (symrcm or symamd)
+# model_data.use_lumped_mass = true or false?  (Default is false: consistent
+#       mass)
+#
+# Output
+# model_data = updated structure that was given on input
+# The struct model_data on output incorporates in addition to the input the fields
+#     model_data.geom = geometry field
+#     model_data.u = displacement field
+#     model_data.neigvs=Number of computed eigenvectors 
+#     model_data.W = Computed eigenvectors, neigvs columns 
+#     model_data.Omega=  Computed angular frequencies, array of length neigvs
+
+    # What is the model reduction scheme?  Default is 3-D.
+    modelreduction = get(modeldata, "modelreduction", DeformationModelReduction3D); 
+
+    neigvs = get(modeldata, "neigvs", 7); # Number of eigenvalues
+    
+    omega_shift = get(modeldata, "omega_shift", 0.0); # Mass shifting
+    
+    use_factorization = get(modeldata, "use_factorization", false); # Factorization?
+
+    use_lumped_mass = get(modeldata, "use_lumped_mass", false); # Lumped mass?
+    
+    # # Should we renumber the nodes to minimize the cost of the solution of
+    # # the coupled linear algebraic equations?
+    # if (renumber) && (use_factorization)
+    #     renumbering_method = 'symamd'; # default choice
+    #     if ( isfield(model_data,'renumbering_method'))
+    #         renumbering_method  =model_data.renumbering_method;;
+    #     end
+    #     # Run the renumbering algorithm
+    #     model_data =renumber_mesh(model_data, renumbering_method);;
+    #     # Save  the renumbering  (permutation of the nodes)
+    #     clear  Renumbering_options; Renumbering_options.node_perm  =model_data.node_perm;
+    # end
+    
+    # Extract the nodes
+    fens=get(()->error("Must get fens!"), modeldata, "fens")
+    
+    # Construct the geometry field
+    geom = NodalField(name ="geom",data =fens.xyz)
+    
+    # Construct the displacement field
+    u = NodalField(name ="u",data =zeros(nfens(geom),ndofn(geom)))
+    
+    # Apply the essential boundary conditions on the displacement field
+    boundary_conditions = get(()->error("Must get boundary conditions!"), modeldata, "boundary_conditions");
+    essential = get(boundary_conditions, "essential", nothing);
+    if (essential!= nothing)
+        for j=1:length(essential)
+            fes = get(essential[j], "fes", nothing);
+            if (fes!= nothing)
+                fenids= connectednodes(fes);
+            else
+                fenids= get(()->error("Must get node list!"), essential[j], "node_list");
+            end
+            component=get(essential[j], "component", 1:ndofn(u)); # which components?  Default is all
+            u_fixed=0.0;  # nonzero displacement does not make sense in modal analysis
+            for k=1:length(component)
+                for n=1:length(fenids)
+                    setebc!(u,fenids[n],true,k,u_fixed);
+                end                
+            end            
+            applyebc!(u);
+        end
+    end
+    
+    
+    # Number the equations
+    numberdofs!(u)           #,Renumbering_options); # NOT DONE <<<<<<<<<<<<<<<<<
+    
+    # Initialize the heat loads vector
+    F =zeros(JFFlt,u.nfreedofs);
+    
+    # Create the finite element models for the regions (if not supplied as input)
+    region=get(()->error("Must get region!"), modeldata, "region")
+    for i=1:length(region)
+        femm=get(region[i], "femm", nothing);
+        if (femm==nothing) # see if you got the specialized FEMMs
+            femm_stiffness=get(region[i], "femm_stiffness", nothing);
+            femm_mass=get(region[i], "femm_mass", nothing);
+            if (femm_stiffness==nothing) || (femm_mass==nothing)
+                #need to construct the FEMM
+                # Construct the property  and material  objects
+                property=get(()->error("Must get property!"), region[i], "property");
+                mater=MaterialDeformationLinear(property);
+                Rm=get(region[i], "Rm", MaterialOrientation());
+                # This is the model object for the current region: note that we supply 
+                # integration  rule and the  material orientation matrix
+                fes=get(()->error("Must get finite elements!"), region[i], "fes");
+                integration_rule_stiffness=get(region[i], "integration_rule_stiffness", nothing);
+                integration_rule_mass=get(region[i], "integration_rule_mass", nothing);
+                if (integration_rule_stiffness==nothing) || (integration_rule_mass==nothing)
+                    integration_rule=get(()->error("Must get integration rule!"), region[i], "integration_rule");
+                    integration_rule_stiffness=integration_rule
+                    integration_rule_mass=integration_rule
+                end
+                femm_stiffness=FEMMDeformationLinear(FEMMBase(fes,integration_rule_stiffness,Rm),mater);
+                femm_mass=FEMMDeformationLinear(FEMMBase(fes,integration_rule_mass,Rm),mater);
+            end
+        else   # assume both should be the same
+            femm_stiffness=femm;
+            femm_mass=femm
+        end
+        setindex!(region[i], femm_stiffness, "femm_stiffness");
+        setindex!(region[i], femm_mass, "femm_mass");
+    end
+    setindex!(modeldata, region, "region"); # put the generated data back
+
+    
+    # Construct the system stiffness matrix 
+    K=  spzeros(u.nfreedofs,u.nfreedofs); # (all zeros, for the moment)
+    M=  spzeros(u.nfreedofs,u.nfreedofs); # (all zeros, for the moment)
+    region=get(()->error("Must get region!"), modeldata, "region")
+    for i=1:length(region)
+        femm_stiffness=get(region[i], "femm_stiffness", nothing);
+        femm_mass=get(region[i], "femm_mass", nothing);
+        # # Give the  FEMM a chance  to precompute  geometry-related quantities
+        # region.femm = associate_geometry(region.femm,geom);
+        K = K + stiffness(modelreduction, femm_stiffness, geom, u);
+        M = M + mass(modelreduction, femm_mass, geom, u);
+    end
+    
+    # Options for the eigenproblem solution
+    
+    # Solve
+    # if (~ use_factorization )
+    #     # This is one way of solving the eigenvalue problem, just pass the matrices
+    #     [W,Omega]= eigs(K+omega_shift*M, M, neigvs, 'SM', evopts);
+    # else
+    # This form uses the factorized matrix and has the potential of being much faster
+    # Factorize the left-hand side matrix for efficiency (Choleski)
+    # [mA,status] = chol(K+omega_shift*M,'lower');#,'vector',prm
+    # if ( status ~= 0 ) error('Choleski factorization failed'), end
+    # clear K; # Not needed anymore
+    # mAt= mA';
+    # [W,Omega]= eigs(@(bv)mAt\(mA\bv), u.nfreedofs, M, neigvs, 'SM', evopts);
+    #          [W,Omega]= eig(full(K+omega_shift*M), full(M));
+    #  end                         # 
+
+    d,v,nev,nconv =eigs(K+omega_shift*M, M; nev=neigvs, which=:SM)
+    d = d - omega_shift;
+    
+    #    Subtract the mass-shifting Angular frequency
+    if any(imag(d) .!= 0.0)
+        warn("Some complex angular frequencies detected");
+        warn(" $(d)");
+        d=real(d);
+    end
+    if any(real(d) .< 0.0)
+        warn("Some negative angular frequencies detected");
+        warn(" $(d)");
+        d=abs(d);
+    end
+    #    Sort  the angular frequencies by magnitude.  Make sure all
+    #    imaginary parts of the eigenvalues are removed.
+    ix =sortperm (d);
+    
+    # Update the model data: store geometry
+    modeldata["geom"] = geom;
+    # Store the displacement field
+    modeldata["u"] = u;
+    # Number of computed eigenvectors
+    modeldata["neigvs"]=nev;
+    #  Computed eigenvectors: we are ignoring the imaginary part here
+    #  because the modal analysis is presumed to have been performed for
+    #  an undamped structure
+    modeldata["W"] = real(v[:,ix]);
+    #  Computed angular frequencies
+    modeldata["omega"]=sqrt(d[ix]);
+    return modeldata
+end
+
 
 end
