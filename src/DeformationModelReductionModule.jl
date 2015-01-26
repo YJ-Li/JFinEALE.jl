@@ -91,9 +91,10 @@ function Blmat!(::Type{DeformationModelReduction1D},B::JFFltMat,N::JFFltMat,grad
     #
     nfn= size(gradN,1);
     dim =size(c,2);
-    #B = zeros(1,nfn*dim);
-    for i= 1:nfn
-        for j=1:dim
+    @assert size(B)==(1,dim*nfn)
+    fill!(B,0.0);
+    @inbounds for i= 1:nfn
+        @inbounds for j=1:dim
             k=dim*(i-1);
             B[1,k+j]=  gradN[i,1] *Rm[j,1];
         end
@@ -130,12 +131,11 @@ function Blmat!(::Type{DeformationModelReduction2DStrain},
     #
     nfn= size(gradN,1);
     dim =size(c,2);
-    #B = zeros(3,nfn*dim);
-    #RmT=Rm[:,1:2]';
-
-    for i= 1:nfn
-        for j=1:dim
-            k=dim*(i-1);
+    @assert size(B)==(3,dim*nfn)
+    fill!(B,0.0);
+    @inbounds for i= 1:nfn
+        k=dim*(i-1);
+        @inbounds for j=1:dim
             B[1,k+j]=gradN[i,1]*Rm[j,1]
             B[2,k+j]=gradN[i,2]*Rm[j,2]
             B[3,k+j]=gradN[i,2]*Rm[j,1]+gradN[i,1]*Rm[j,2]
@@ -177,20 +177,16 @@ function Blmat!(::Type{DeformationModelReduction2DStress},
     #
     nfn= size(gradN,1);
     dim =size(c,2);
-    #B = zeros(3,nfn*dim);
-    #RmT=Rm[:,1:2]';
-    for i= 1:nfn
-        for j=1:dim
-            k=dim*(i-1);
+    @assert size(B)==(3,dim*nfn)
+    fill!(B,0.0);
+    @inbounds for i= 1:nfn
+        k=dim*(i-1);
+        @inbounds for j=1:dim
             B[1,k+j]=gradN[i,1]*Rm[j,1]
             B[2,k+j]=gradN[i,2]*Rm[j,2]
             B[3,k+j]=gradN[i,2]*Rm[j,1]+gradN[i,1]*Rm[j,2]
         end
     end
-    # B(:,dim*(i-1)+1:dim*i)=...
-    #         [gradN(i,1) 0; ...
-    #          0           gradN(i,2); ...
-    #          gradN(i,2) gradN(i,1) ]*RmT;
 end
 export Blmat!
 
@@ -222,10 +218,11 @@ function Blmat!(::Type{DeformationModelReduction2DAxisymm},
         r=eps(1.0);
     end
     dim =size(c,2);
-    #B = zeros(4,nfn*dim);
-    for i= 1:nfn
-        for j=1:dim
-            k=dim*(i-1);
+    @assert size(B)==(4,dim*nfn)
+    fill!(B,0.0);
+    @inbounds for i= 1:nfn
+        k=dim*(i-1);
+        @inbounds for j=1:dim
             B[1,k+j]=gradN[i,1]*Rm[j,1]
             B[2,k+j]=gradN[i,2]*Rm[j,2]
             B[3,k+j]=N[i]/r*Rm[j,1]
@@ -273,23 +270,18 @@ function Blmat!(::Type{DeformationModelReduction3D},
     #
     nfn= size(gradN,1);
     dim =size(c,2);
-    #B = zeros(6,nfn*3); #initialize
-    for i= 1:nfn
-        for j=1:dim
-            k=dim*(i-1);
-            B[1,k+j]=gradN[i,1]*Rm[j,1]
-            B[2,k+j]=gradN[i,2]*Rm[j,2]
-            B[3,k+j]=gradN[i,3]*Rm[j,3]
-            B[4,k+j]=gradN[i,2]*Rm[j,1]+gradN[i,1]*Rm[j,2]
-            B[5,k+j]=gradN[i,3]*Rm[j,1]+gradN[i,1]*Rm[j,3]
-            B[6,k+j]=gradN[i,3]*Rm[j,2]+gradN[i,2]*Rm[j,3]
-            # B(:,3*(i-1)+1:3*i)...
-            # = [ gradN(i,1) 0           0  ; ...
-            #    0           gradN(i,2) 0  ; ...
-            #    0           0           gradN(i,3) ; ...
-            #    gradN(i,2) gradN(i,1) 0  ; ...
-            #    gradN(i,3) 0           gradN(i,1) ; ...
-            #    0           gradN(i,3) gradN(i,2) ]*RmT;
+    @assert size(B)==(6,dim*nfn)
+    fill!(B,0.0);
+    @inbounds for i= 1:nfn
+        k=dim*(i-1);
+        @inbounds for j=1:dim
+            kj=k+j
+            B[1,kj]=gradN[i,1]*Rm[j,1]
+            B[2,kj]=gradN[i,2]*Rm[j,2]
+            B[3,kj]=gradN[i,3]*Rm[j,3]
+            B[4,kj]=gradN[i,2]*Rm[j,1]+gradN[i,1]*Rm[j,2]
+            B[5,kj]=gradN[i,3]*Rm[j,1]+gradN[i,1]*Rm[j,3]
+            B[6,kj]=gradN[i,3]*Rm[j,2]+gradN[i,2]*Rm[j,3]
         end
     end
     return;

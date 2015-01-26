@@ -280,3 +280,51 @@ function pub_thick_pipe_axi()
 end
 end
 scratch1.pub_thick_pipe_axi()
+
+module scratch2
+using JFinEALE
+using Base.Test
+
+
+# println("""
+#         % Vibration modes of unit cube  of almost incompressible material.
+#         %
+#         % Reference: Puso MA, Solberg J (2006) A stabilized nodally integrated
+#         % tetrahedral. International Journal for Numerical Methods in
+#         % Engineering 67: 841-867.""") 
+#         t0 = time()
+
+
+E = 1*phun("PA");
+nu = 0.499;
+rho= 1*phun("KG/M^3");
+a=1*phun("M"); b=a; h= a;
+n1=10;# How many element edges per side?
+na= n1; nb= n1; nh =n1;
+neigvs=20                   # how many eigenvalues
+OmegaShift=(0.01*2*pi)^2;
+
+Modelreduction=DeformationModelReduction3D
+fens,fes =H20block(a,b,h, na,nb,nh)
+
+geom = NodalField(name ="geom",data =fens.xyz)
+u = NodalField(name ="u",data =zeros(size(fens.xyz,1),3)) # displacement field
+
+numberdofs!(u)
+
+p=PropertyDeformationLinearIso(rho,E,nu)
+material=MaterialDeformationLinear (p)
+
+femm = FEMMDeformationLinear(FEMMBase(fes, GaussRule(order=2,dim=3)), material)
+
+K =stiffness(Modelreduction, femm, geom, u)
+femm = FEMMDeformationLinear(FEMMBase(fes, GaussRule(order=3,dim=3)), material)
+M =mass(Modelreduction, femm, geom, u)
+d,v,nev,nconv =eigs(K+OmegaShift*M, M; nev=neigvs, which=:SM)
+d = d - OmegaShift;
+fs=real(sqrt(complex(d)))/(2*pi)
+#println("Eigenvalues: $fs [Hz]")
+
+@test fs[7]-0.262598691962592<1.0e-6
+
+end

@@ -25,11 +25,11 @@ export manifdim
 #############################################################################
 
 # Get the number of connected finite elements
-nfensperfe{T<:FESet}(self::T) = size(self.conn,2)
+nfensperfe{T<:FESet}(self::T) = size(self.conn,2)::JFInt
 export nfensperfe
 
 # Get the number of individual connectivities in the FE set
-count{T<:FESet}(self::T) = size(self.conn,1)
+count{T<:FESet}(self::T) = size(self.conn,1)::JFInt
 export count
 
 # Get element label.

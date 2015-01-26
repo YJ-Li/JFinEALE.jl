@@ -74,10 +74,10 @@ function conductivity{S<:FESet,A<:SysmatAssemblerBase}(self::FEMMHeatDiffusion{S
             At_mul_B!(RmTJ, self.femmbase.mo.Rm, J); # local Jacobian matrix 
             # gradient WRT material coordinates
             FESetModule.gradN!(fes,gradN,gradNparams[j],RmTJ);#Do: gradN = gradNparams[j]/RmTJ;
-            for nx=1:Kedim # Do: Ke = Ke + gradN*(kappa_bar*(Jac*w[j]))*gradN' ;
-                for kx=1:sdim
-                    for px=1:sdim
-                        for mx=1:Kedim
+            @inbounds for nx=1:Kedim # Do: Ke = Ke + gradN*(kappa_bar*(Jac*w[j]))*gradN' ;
+                @inbounds for kx=1:sdim
+                    @inbounds for px=1:sdim
+                        @inbounds for mx=1:Kedim
                             Ke[mx,nx] = Ke[mx,nx] + gradN[mx,px]*((Jac*w[j])*kappa_bar[px,kx])*gradN[nx,kx]
                         end
                     end
@@ -151,10 +151,10 @@ function nzebcloadsconductivity{S<:FESet,A<:SysvecAssemblerBase}(self::FEMMHeatD
                 At_mul_B!(RmTJ, self.femmbase.mo.Rm, J); # local Jacobian matrix 
                 # gradient WRT material coordinates
                 FESetModule.gradN!(fes,gradN,gradNparams[j],RmTJ);#Do: gradN = gradNparams[j]/RmTJ;
-                for nx=1:Kedim # Do: Ke = Ke + gradN*(kappa_bar*(Jac*w[j]))*gradN' ;
-                    for kx=1:sdim
-                        for px=1:sdim
-                            for mx=1:Kedim
+                @inbounds for nx=1:Kedim # Do: Ke = Ke + gradN*(kappa_bar*(Jac*w[j]))*gradN' ;
+                    @inbounds for kx=1:sdim
+                        @inbounds for px=1:sdim
+                            @inbounds for mx=1:Kedim
                                 Ke[mx,nx] = Ke[mx,nx] + gradN[mx,px]*((Jac*w[j])*kappa_bar[px,kx])*gradN[nx,kx]
                             end
                         end

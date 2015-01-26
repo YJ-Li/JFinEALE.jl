@@ -172,7 +172,8 @@ function tangentmoduli!{P<:PropertyDeformationLinear}(::Type{DeformationModelRed
         for j=1:length(ix)
             D[j,i]=D3d[ix[j],ix[i]];
         end        
-    end    
+    end
+    return D
 end
 export tangentmoduli!
 
@@ -316,7 +317,8 @@ function tangentmoduli!{P<:PropertyDeformationLinear,
     end
     for i=1:3
         D[3,i]= D[i,3]= D3d[4,ix[i]];
-    end    
+    end
+    return D
 end
 export tangentmoduli!
 
@@ -454,6 +456,7 @@ function tangentmoduli!(::Type{DeformationModelReduction2DAxisymm},
             D[j,i]= D3d[j,i];
         end        
     end
+    return D
 end
 export tangentmoduli!
 
@@ -583,6 +586,7 @@ function tangentmoduli!{P<:PropertyDeformationLinear}(::Type{DeformationModelRed
     D3d=zeros(JFFlt,6,6)
     tangentmoduli3d!(self.property, D3d; context...);
     D[1,1] = D3d[1, 1]- D3d[1,2:3]*D3d[2:3,2:3]\D3d[2:3,1];
+    return D
 end
 export tangentmoduli!
 

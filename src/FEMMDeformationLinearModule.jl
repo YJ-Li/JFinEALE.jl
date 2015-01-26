@@ -29,6 +29,7 @@ function stiffness{MR<:DeformationModelReduction,
 end
 export stiffness
 
+# @code_warntype stiffness(DeformationModelReduction,femm,SysmatAssemblerSparseSymm(),geom, u)
 function stiffness{MR<:DeformationModelReduction,
     S<:FESet,A<:SysmatAssemblerBase,T<:Number}(::Type{MR},
                                      self::FEMMDeformationLinear{S},
@@ -76,10 +77,10 @@ function stiffness{MR<:DeformationModelReduction,
             FESetModule.gradN!(fes,gradN,gradNparams[j],RmTJ);#Do: gradN = gradNparams[j]/RmTJ;
             Blmat!(MR,B,Ns[j],gradN,loc,mo.Rm);#  strains in material cs, displacements in global cs
             #tangentmoduli!(MR,mat,D,loc);# Moduli in material orientation
-            for nx=1:Kedim # Do: Ke = Ke + (B'*(D*(Jac*w[j]))*B); 
-                for kx=1:nstr
-                    for px=1:nstr
-                        for mx=1:Kedim
+            @inbounds for nx=1:Kedim # Do: Ke = Ke + (B'*(D*(Jac*w[j]))*B); 
+                @inbounds for kx=1:nstr
+                    @inbounds for px=1:nstr
+                        @inbounds for mx=1:Kedim
                             Ke[mx,nx] = Ke[mx,nx] + B[px,mx]*((Jac*w[j])*D[px,kx])*B[kx,nx]
                         end
                     end
@@ -158,10 +159,10 @@ function nzebcloadsstiffness{MR<:DeformationModelReduction,
                 FESetModule.gradN!(fes,gradN,gradNparams[j],RmTJ);#Do: gradN = gradNparams[j]/RmTJ;
                 Blmat!(MR,B,Ns[j],gradN,loc,mo.Rm);#  strains in material cs, displacements in global cs
                 #tangentmoduli!(MR,mat,D,loc);# Moduli in material orientation
-                for nx=1:Kedim # Do: Ke = Ke + (B'*(D*(Jac*w[j]))*B); 
-                    for kx=1:nstr
-                        for px=1:nstr
-                            for mx=1:Kedim
+                @inbounds for nx=1:Kedim # Do: Ke = Ke + (B'*(D*(Jac*w[j]))*B); 
+                    @inbounds for kx=1:nstr
+                        @inbounds for px=1:nstr
+                            @inbounds for mx=1:Kedim
                                 Ke[mx,nx] = Ke[mx,nx] + B[px,mx]*((Jac*w[j])*D[px,kx])*B[kx,nx]
                             end
                         end
@@ -230,8 +231,8 @@ function mass{MR<:DeformationModelReduction,
             At_mul_B!(J, x, gradNparams[j]); # calculate the Jacobian matrix 
             Jac = FESetModule.Jacobianvolume(fes,conn, Ns[j], J, x);# Jacobian
             thefactor::JFFlt =(rho*Jac*w[j]);
-            for nx=1:Medim # Do: Me = Me + (Nexp'*Nexp) * (rho * Jac * w(j));
-                for mx=1:Medim
+            @inbounds for nx=1:Medim # Do: Me = Me + (Nexp'*Nexp) * (rho * Jac * w(j));
+                @inbounds for mx=1:Medim
                     Me[mx,nx] = Me[mx,nx] + NexpTNexp[j][mx,nx]*thefactor
                 end
             end
