@@ -428,7 +428,8 @@ function gradN!(self::FESet2Manifold,gradN::JFFltMat,gradNparams::JFFltMat,redJ:
     invredJ12 = -(redJ[1,2])*invdet;
     invredJ21 = -(redJ[2,1])*invdet;
     invredJ22 =  (redJ[1,1])*invdet;
-    for r=1:size(gradN,1)
+    @assert size(gradN,1)==size(gradNparams,1)
+    @inbounds for r=1:size(gradN,1)
         gradN[r,1]= gradNparams[r,1]*invredJ11 +gradNparams[r,2]*invredJ21;
         gradN[r,2]= gradNparams[r,1]*invredJ12 +gradNparams[r,2]*invredJ22;
     end
@@ -543,7 +544,8 @@ function gradN!(self::FESet3Manifold,gradN::JFFltMat,gradNparams::JFFltMat,redJ:
     invredJ31 =  (redJ[2,1]*redJ[3,2]-redJ[3,1]*redJ[2,2])*invdet;
     invredJ32 = -(redJ[1,1]*redJ[3,2]-redJ[3,1]*redJ[1,2])*invdet;
     invredJ33 =  (redJ[1,1]*redJ[2,2]-redJ[2,1]*redJ[1,2])*invdet;
-    for r=1:size(gradN,1)
+    @assert size(gradN,1)==size(gradNparams,1)
+    @inbounds for r=1:size(gradN,1)
         gradN[r,1]= gradNparams[r,1]*invredJ11 +gradNparams[r,2]*invredJ21 +gradNparams[r,3]*invredJ31;
         gradN[r,2]= gradNparams[r,1]*invredJ12 +gradNparams[r,2]*invredJ22 +gradNparams[r,3]*invredJ32;
         gradN[r,3]= gradNparams[r,1]*invredJ13 +gradNparams[r,2]*invredJ23 +gradNparams[r,3]*invredJ33;
