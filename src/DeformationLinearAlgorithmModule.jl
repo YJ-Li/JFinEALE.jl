@@ -292,7 +292,7 @@ function exportdeformation(modeldata::ModelDataDictionary)
     postprocessing = get(modeldata, "postprocessing", nothing); 
     if (postprocessing!=nothing)
         boundary_only=  get(postprocessing, "boundary_only", boundary_only);
-          ffile=  get(postprocessing, "file", ffile); 
+        ffile=  get(postprocessing, "file", ffile); 
     end
     
     fens=get(()->error("Must get fens!"), modeldata, "fens")
@@ -662,6 +662,75 @@ function modal(modeldata::ModelDataDictionary)
     modeldata["W"] = real(v[:,ix]);
     #  Computed angular frequencies
     modeldata["omega"]=sqrt(d[ix]);
+    return modeldata
+end
+
+function exportmode(modeldata::ModelDataDictionary)
+    # Export the modal deformation for visualization in Paraview.
+    # 
+    # Arguments
+    # model_data= model data as produced by deformation_linear_statics()
+    # model_data.postprocessing= optional struct with optional fields
+    #      gv = graphic viewer; if not supplied, a graphic viewer is created 
+    #           and returned in options.gv
+    #      u_scale = deflection scale, default 1.0;
+    #      modelist= default is 1:model_data.neigvs.
+    #      save_frame= should we save images for the modes displayed? default false;
+    #      frame_name= name for the mode images; default 'frame_name';
+    #      camera  = camera, default is [] which means use the default orientation 
+    #           of the view;
+    #      cmap= colormap (default: jet)
+    #
+    # Output
+    # model_data = structure on input updated with
+    # model_data.postprocessing.gv=graphic viewer used to display the data
+    
+    
+    # Defaults
+    mode=1;
+    boundary_only= false;
+    ffile= "deformation"
+    # Let's have a look at what's been specified
+    postprocessing = get(modeldata, "postprocessing", nothing); 
+    if (postprocessing!=nothing)
+        mode=  get(postprocessing, "mode", mode);
+        boundary_only=  get(postprocessing, "boundary_only", boundary_only);
+        ffile=  get(postprocessing, "file", ffile); 
+    end
+
+    omega=modeldata["omega"]
+    if (length(omega)<mode) || (mode<0)
+        error("Invalid node number $mode")
+    end
+    
+    
+    fens=get(()->error("Must get fens!"), modeldata, "fens")
+    geom = get(()->error("Must get geometry field!"), modeldata, "geom");  
+    u = get(()->error("Must get displacement field!"), modeldata, "u"); 
+
+    # Scatter the desired mode
+    W=modeldata["W"]
+    scattersysvec!(u,W[:,mode])
+
+    # Plot the surface for each region
+    region=get(()->error("Must get region!"), modeldata, "region")
+    for i=1:length(region)
+        femm=get(region[i], "femm", nothing);
+        if (femm==nothing)
+            femm=get(region[i], "femm_stiffness", nothing);
+        end
+        if (femm==nothing)
+            error("No FEMM")
+        end
+        rfile = ffile * "$i" * ".vtk";
+        if boundary_only
+            bfes= meshboundary(femm.femmbase.fes);
+            vtkexportmesh (rfile, fens, bfes;  vectors=u.values, vectors_name ="EV$mode")
+        else
+            vtkexportmesh (rfile, fens, femm.femmbase.fes;  vectors=u.values, vectors_name ="EV$mode")
+        end
+    end
+    
     return modeldata
 end
 
