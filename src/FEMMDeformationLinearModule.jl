@@ -91,6 +91,7 @@ function stiffness{MR<:DeformationModelReduction,
     gradN::JFFltMat =zeros(JFFlt,nne,mdim); # intermediate result -- used as a buffer
     D::JFFltMat =zeros(JFFlt,nstr,nstr); # material stiffness matrix -- used as a buffer
     B::JFFltMat =zeros(JFFlt,nstr,Kedim); # strain-displacement matrix -- used as a buffer
+    DB::JFFltMat =zeros(JFFlt,nstr,Kedim); # strain-displacement matrix -- used as a buffer
     mo::MaterialOrientation=self.femmbase.mo;
     tangentmoduli!(MR,self.material,D;loc=[0.0]);# Moduli in material orientation
     startassembly!(assembler, Kedim, Kedim, nfes, u.nfreedofs, u.nfreedofs);
@@ -107,13 +108,12 @@ function stiffness{MR<:DeformationModelReduction,
             # gradient WRT material coordinates
             FESetModule.gradN!(fes,gradN,gradNparams[j],RmTJ);#Do: gradN = gradNparams[j]/RmTJ;
             Blmat!(MR,B,Ns[j],gradN,loc,mo.Rm);#  strains in material cs, displacements in global cs
+            A_mul_B!(DB,D,B)    # intermediate product
             #tangentmoduli!(MR,mat,D,loc);# Moduli in material orientation
             @inbounds for nx=1:Kedim # Do: Ke = Ke + (B'*(D*(Jac*w[j]))*B); only the upper triangle
-                @inbounds for kx=1:nstr
+                @inbounds for mx=1:nx # only the upper triangle
                     @inbounds for px=1:nstr
-                        @inbounds for mx=1:nx # only the upper triangle
-                            Ke[mx,nx] = Ke[mx,nx] + B[px,mx]*((Jac*w[j])*D[px,kx])*B[kx,nx]
-                        end
+                        Ke[mx,nx] = Ke[mx,nx] + B[px,mx]*(Jac*w[j])*DB[px,nx]
                     end
                 end
             end
@@ -122,7 +122,6 @@ function stiffness{MR<:DeformationModelReduction,
                     Ke[mx,nx] = Ke[nx,mx]
                 end
             end 
-            #qpadd!(Ke,Kedim,nstr,B,Jac*w[j],D)
         end # Loop over quadrature points
         gatherdofnumsasvec!(u, dofnums, conn);# retrieve degrees of freedom
         assemble!(assembler, Ke, dofnums, dofnums);# assemble symmetric matrix

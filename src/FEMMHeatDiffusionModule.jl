@@ -61,6 +61,7 @@ function conductivity{S<:FESet,A<:SysmatAssemblerBase}(self::FEMMHeatDiffusion{S
     J::JFFltMat =eye(JFFlt,sdim,mdim); # Jacobian matrix -- used as a buffer
     RmTJ::JFFltMat =zeros(JFFlt,mdim,mdim); # intermediate result -- used as a buffer
     gradN::JFFltMat =zeros(JFFlt,nne,mdim); # intermediate result -- used as a buffer
+    kappa_bargradNT::JFFltMat=zeros(JFFlt,mdim,nne); # intermediate result -- used as a buffer
     startassembly!(assembler, Kedim, Kedim, nfes, temp.nfreedofs, temp.nfreedofs);
     for i=1:nfes # Loop over elements
         getconn!(fes,conn,i);
@@ -74,12 +75,11 @@ function conductivity{S<:FESet,A<:SysmatAssemblerBase}(self::FEMMHeatDiffusion{S
             At_mul_B!(RmTJ, self.femmbase.mo.Rm, J); # local Jacobian matrix 
             # gradient WRT material coordinates
             FESetModule.gradN!(fes,gradN,gradNparams[j],RmTJ);#Do: gradN = gradNparams[j]/RmTJ;
+            A_mul_Bt!(kappa_bargradNT,kappa_bar,gradN); # intermediate result
             @inbounds for nx=1:Kedim # Do: Ke = Ke + gradN*(kappa_bar*(Jac*w[j]))*gradN' ; only the upper triangle
-                @inbounds for kx=1:sdim
+                @inbounds for mx=1:nx # only the upper triangle
                     @inbounds for px=1:sdim
-                        @inbounds for mx=1:nx # only the upper triangle
-                            Ke[mx,nx] = Ke[mx,nx] + gradN[mx,px]*((Jac*w[j])*kappa_bar[px,kx])*gradN[nx,kx]
-                        end
+                        Ke[mx,nx] = Ke[mx,nx] + gradN[mx,px]*(Jac*w[j])*kappa_bargradNT[px,nx]
                     end
                 end
             end
