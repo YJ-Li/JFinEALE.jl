@@ -74,13 +74,18 @@ function conductivity{S<:FESet,A<:SysmatAssemblerBase}(self::FEMMHeatDiffusion{S
             At_mul_B!(RmTJ, self.femmbase.mo.Rm, J); # local Jacobian matrix 
             # gradient WRT material coordinates
             FESetModule.gradN!(fes,gradN,gradNparams[j],RmTJ);#Do: gradN = gradNparams[j]/RmTJ;
-            @inbounds for nx=1:Kedim # Do: Ke = Ke + gradN*(kappa_bar*(Jac*w[j]))*gradN' ;
+            @inbounds for nx=1:Kedim # Do: Ke = Ke + gradN*(kappa_bar*(Jac*w[j]))*gradN' ; only the upper triangle
                 @inbounds for kx=1:sdim
                     @inbounds for px=1:sdim
-                        @inbounds for mx=1:Kedim
+                        @inbounds for mx=1:nx # only the upper triangle
                             Ke[mx,nx] = Ke[mx,nx] + gradN[mx,px]*((Jac*w[j])*kappa_bar[px,kx])*gradN[nx,kx]
                         end
                     end
+                end
+            end
+            @inbounds for nx=1:Kedim #  Do: Ke = Ke + gradN*(kappa_bar*(Jac*w[j]))*gradN' ;
+                @inbounds for mx=nx+1:Kedim # complete the lower triangle
+                    Ke[mx,nx] = Ke[nx,mx]
                 end
             end
         end # Loop over quadrature points

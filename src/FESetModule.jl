@@ -159,7 +159,7 @@ export updateconn!
 #############################################################################
 
 
-function Jacobiancurve(self::FESet1Manifold, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat)
+function Jacobiancurve{T<:FESet1Manifold}(self::T, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat)
     # % Evaluate the curve Jacobian.
     # 
     # %   where
@@ -179,7 +179,7 @@ function Jacobiancurve(self::FESet1Manifold, conn::JFIntMat, N::JFFltMat, J::JFF
     return Jac::JFFlt
 end
 
-function Jacobiansurface(self::FESet1Manifold, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat)
+function Jacobiansurface{T<:FESet1Manifold}(self::T, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat)
     # % Evaluate the surface Jacobian.
     # %
     # %   For the one-dimensional cell, the surface Jacobian is 
@@ -207,7 +207,7 @@ function Jacobiansurface(self::FESet1Manifold, conn::JFIntMat, N::JFFltMat, J::J
 end
         
 
-function Jacobianvolume(self::FESet1Manifold, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat)
+function Jacobianvolume{T<:FESet1Manifold}(self::T, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat)
     # % Evaluate the volume Jacobian.
     # %
     # %   For the one-dimensional cell, the volume Jacobian is 
@@ -235,7 +235,7 @@ function Jacobianvolume(self::FESet1Manifold, conn::JFIntMat, N::JFFltMat, J::JF
     return Jac::JFFlt
 end
 
-function Jacobianmdim(self::FESet1Manifold, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat, m::JFInt)
+function Jacobianmdim{T<:FESet1Manifold}(self::T, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat, m::JFInt)
     # % Evaluate the manifold Jacobian.
     # %
     # %   For and m-dimensional cell, the manifold Jacobian is
@@ -264,7 +264,7 @@ function Jacobianmdim(self::FESet1Manifold, conn::JFIntMat, N::JFFltMat, J::JFFl
     return Jac::JFFlt
 end
 
-function Jacobian(self::FESet1Manifold, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat)
+function Jacobian{T<:FESet1Manifold}(self::T, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat)
     # % Evaluate the manifold Jacobian.
     # %
     # %   For and m-dimensional cell, the manifold Jacobian is
@@ -280,7 +280,7 @@ function Jacobian(self::FESet1Manifold, conn::JFIntMat, N::JFFltMat, J::JFFltMat
     # %      J = Jacobian matrix
     # %      x=array of spatial coordinates of the nodes, size(x) = [nbfuns,dim]
     # %
-    Jac = Jacobian_curve(self, conn, N, J, x)::JFFlt;
+    Jac = Jacobiancurve(self, conn, N, J, x)::JFFlt;
 end
         
 function gradN!(self::FESet1Manifold,gradN::JFFltMat,gradNparams::JFFltMat,redJ::JFFltMat)
@@ -301,7 +301,7 @@ end
 # FESet2Manifold
 #############################################################################
 
-function Jacobiansurface(self::FESet2Manifold, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat)
+function Jacobiansurface{T<:FESet2Manifold}(self::T, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat)
     # Evaluate the surface Jacobian.
     
     #        conn=connectivity of a single cell in which the Jacobian is to be evaluated
@@ -324,7 +324,7 @@ function Jacobiansurface(self::FESet2Manifold, conn::JFIntMat, N::JFFltMat, J::J
 end
 
 
-function Jacobianvolume(self::FESet2Manifold, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat)
+function Jacobianvolume{T<:FESet2Manifold}(self::T, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat)
 
     #             %   For the two-dimensional cell, the volume Jacobian is
     #             %       (i) the product of the 2-D Jacobian and the other dimension (Units
@@ -351,7 +351,7 @@ function Jacobianvolume(self::FESet2Manifold, conn::JFIntMat, N::JFFltMat, J::JF
     return Jac::JFFlt
 end
 
-function Jacobianmdim(self::FESet2Manifold, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat, m::JFInt)
+function Jacobianmdim{T<:FESet2Manifold}(self::T, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat, m::JFInt)
     #             % Evaluate the manifold Jacobian.
     #             %
     #             % function Jac = Jacobian_mdim(self, conn, N, J, x, m)
@@ -381,7 +381,7 @@ function Jacobianmdim(self::FESet2Manifold, conn::JFIntMat, N::JFFltMat, J::JFFl
     return Jac::JFFlt
 end
 
-function Jacobian(self::FESet2Manifold, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat)
+function Jacobian{T<:FESet2Manifold}(self::T, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat)
     #   % Evaluate the manifold Jacobian.
     #   %
     #   % function Jac = Jacobian(self, conn, N, J, x)
@@ -441,7 +441,7 @@ end
 #############################################################################
 
 
-function Jacobianvolume(self::FESet3Manifold, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat)
+function Jacobianvolume{T<:FESet3Manifold}(self::T, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat)
     # % Evaluate the volume Jacobian.
     # %
     # %   where
@@ -461,7 +461,7 @@ function Jacobianvolume(self::FESet3Manifold, conn::JFIntMat, N::JFFltMat, J::JF
     return Jac::JFFlt
 end
 
-function Jacobianmdim(self::FESet3Manifold, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat, m::JFInt)
+function Jacobianmdim{T<:FESet3Manifold}(self::T, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat, m::JFInt)
     # % Evaluate the manifold Jacobian.
     # %
     # %   For and m-dimensional cell, the manifold Jacobian is
@@ -486,7 +486,7 @@ function Jacobianmdim(self::FESet3Manifold, conn::JFIntMat, N::JFFltMat, J::JFFl
     return Jac::JFFlt
 end
 
-function Jacobian(self::FESet3Manifold, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat)
+function Jacobian{T<:FESet3Manifold}(self::T, conn::JFIntMat, N::JFFltMat, J::JFFltMat, x::JFFltMat)
     # % Evaluate the manifold Jacobian.
     # %
     # %   For and m-dimensional cell, the manifold Jacobian is
@@ -502,7 +502,7 @@ function Jacobian(self::FESet3Manifold, conn::JFIntMat, N::JFFltMat, J::JFFltMat
     # %      J = Jacobian matrix
     # %      x=array of spatial coordinates of the nodes, size(x) = [nbfuns,dim]
     # %
-    Jac = Jacobian_volume(self, conn, N, J, x)::JFFlt;
+    Jac = Jacobianvolume(self, conn, N, J, x)::JFFlt;
 end
         
 function gradN!(self::FESet3Manifold,gradN::JFFltMat,gradNparams::JFFltMat,redJ::JFFltMat)

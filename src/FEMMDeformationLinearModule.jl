@@ -21,6 +21,37 @@ type FEMMDeformationLinear{S<:FESet,P<:PropertyDeformationLinear}
 end
 export FEMMDeformationLinear
 
+function qpadd!(Ke::JFFltMat,Kedim::JFInt,nstr::JFInt,B::JFFltMat,Jacw::JFFlt,D::JFFltMat)
+    @inbounds for nx=1:Kedim # Do: Ke = Ke + (B'*(D*(Jac*w[j]))*B); 
+        @inbounds for kx=1:nstr
+            @inbounds for px=1:nstr
+                @inbounds for mx=1:Kedim
+                    Ke[mx,nx] = Ke[mx,nx] + B[px,mx]*((Jacw)*D[px,kx])*B[kx,nx]
+                end
+            end
+        end
+    end
+end
+
+function f()
+    Ke=zeros(JFFlt,60,60)
+    B=rand(JFFlt,6,60)
+    Jac= 1.3375::JFFlt
+    w= 0.211::JFFlt
+    D=rand(JFFlt,6,6)
+    Kedim=size(Ke,1)
+    nstr=6
+    @inbounds for nx=1:Kedim # Do: Ke = Ke + (B'*(D*(Jac*w[j]))*B); 
+        @inbounds for kx=1:nstr
+            @inbounds for px=1:nstr
+                @inbounds for mx=1:Kedim
+                    Ke[mx,nx] = Ke[mx,nx] + B[px,mx]*((Jac*w)*D[px,kx])*B[kx,nx]
+                end
+            end
+        end
+    end
+end
+
 function stiffness{MR<:DeformationModelReduction,
     S<:FESet,T<:Number}(::Type{MR},self::FEMMDeformationLinear{S}, 
               geom::NodalField{JFFlt}, u::NodalField{T})
@@ -77,15 +108,21 @@ function stiffness{MR<:DeformationModelReduction,
             FESetModule.gradN!(fes,gradN,gradNparams[j],RmTJ);#Do: gradN = gradNparams[j]/RmTJ;
             Blmat!(MR,B,Ns[j],gradN,loc,mo.Rm);#  strains in material cs, displacements in global cs
             #tangentmoduli!(MR,mat,D,loc);# Moduli in material orientation
-            @inbounds for nx=1:Kedim # Do: Ke = Ke + (B'*(D*(Jac*w[j]))*B); 
+            @inbounds for nx=1:Kedim # Do: Ke = Ke + (B'*(D*(Jac*w[j]))*B); only the upper triangle
                 @inbounds for kx=1:nstr
                     @inbounds for px=1:nstr
-                        @inbounds for mx=1:Kedim
+                        @inbounds for mx=1:nx # only the upper triangle
                             Ke[mx,nx] = Ke[mx,nx] + B[px,mx]*((Jac*w[j])*D[px,kx])*B[kx,nx]
                         end
                     end
                 end
             end
+            @inbounds for nx=1:Kedim # Do: Ke = Ke + (B'*(D*(Jac*w[j]))*B);
+                @inbounds for mx=nx+1:Kedim # complete the lower triangle
+                    Ke[mx,nx] = Ke[nx,mx]
+                end
+            end 
+            #qpadd!(Ke,Kedim,nstr,B,Jac*w[j],D)
         end # Loop over quadrature points
         gatherdofnumsasvec!(u, dofnums, conn);# retrieve degrees of freedom
         assemble!(assembler, Ke, dofnums, dofnums);# assemble symmetric matrix

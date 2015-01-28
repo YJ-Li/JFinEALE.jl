@@ -99,6 +99,7 @@ function Blmat!(::Type{DeformationModelReduction1D},B::JFFltMat,N::JFFltMat,grad
             B[1,k+j]=  gradN[i,1] *Rm[j,1];
         end
     end
+    return B::JFFltMat;
 end
 export Blmat!
 
@@ -141,10 +142,7 @@ function Blmat!(::Type{DeformationModelReduction2DStrain},
             B[3,k+j]=gradN[i,2]*Rm[j,1]+gradN[i,1]*Rm[j,2]
         end
     end
-    # B(:,dim*(i-1)+1:dim*i)=...
-    #         [gradN(i,1) 0; ...
-    #          0           gradN(i,2); ...
-    #          gradN(i,2) gradN(i,1) ]*RmT;
+    return B::JFFltMat;
 end
 export Blmat!
 
@@ -187,6 +185,7 @@ function Blmat!(::Type{DeformationModelReduction2DStress},
             B[3,k+j]=gradN[i,2]*Rm[j,1]+gradN[i,1]*Rm[j,2]
         end
     end
+    return B::JFFltMat;
 end
 export Blmat!
 
@@ -229,14 +228,7 @@ function Blmat!(::Type{DeformationModelReduction2DAxisymm},
             B[4,k+j]=gradN[i,2]*Rm[j,1]+gradN[i,1]*Rm[j,2]
         end
     end
-    # for i= 1:nfn
-    #         B(:,dim*(i-1)+1:dim*i)=...
-    #             [gradN(i,1) 0; ...
-    #             0           gradN(i,2); ...
-    #             N(i)/r 0; ...
-    #             gradN(i,2) gradN(i,1) ]*RmT;
-    #     end
-    # end
+   return B::JFFltMat;
 end
 export Blmat!
 
@@ -284,7 +276,7 @@ function Blmat!(::Type{DeformationModelReduction3D},
             B[6,kj]=gradN[i,3]*Rm[j,2]+gradN[i,2]*Rm[j,3]
         end
     end
-    return;
+    return B::JFFltMat;
 end
 export Blmat!
 
