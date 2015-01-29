@@ -1,5 +1,8 @@
 module JFFoundationModule
 
+# Documentation relies on this
+#VERSION < v"0.4-" && using Docile
+
 import Base.Complex
 
 typealias JFInt Int

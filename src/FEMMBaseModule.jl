@@ -40,6 +40,15 @@ using JFinEALE.MaterialOrientationModule
 #                  as columns,
     #          label= the label of the finite element in which the point XYZ resides
 
+  #     @doc doc"""
+  # Construct FEMM for common operations.
+  #     fes = finite element set.  The type of the FE set will be dependent upon
+  #           the operations required. For instance, for interior (volume) integrals
+  #           such as body load or the stiffness hexahedral H8 may be used whereas
+  #           for boundary  (surface) integrals quadrilateral Q4 would be needed.
+  #     integration_rule= integration rule object
+  #     mo= material orientation object
+  #     """ ->
 type FEMMBase{T<:FESet}
     fes::T # finite element set object
     integration_rule::IntegRule  # integration rule object
@@ -55,7 +64,7 @@ type FEMMBase{T<:FESet}
 end
 export FEMMBase
 
-# Construct with the user-defined orientation matrix updater.
+# Construct with user-specified material orientation matrix updater.
 function  FEMMBase{T<:FESet} (fes::T,
                               integration_rule::IntegRule,
                               mo::MaterialOrientation)
