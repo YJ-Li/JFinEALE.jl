@@ -328,3 +328,106 @@ fs=real(sqrt(complex(d)))/(2*pi)
 @test fs[7]-0.262598691962592<1.0e-6
 
 end
+
+module mxxxx1
+
+using JFinEALE
+using JFinEALE.DeformationLinearAlgorithmModule
+using JFinEALE.MeshExportModule
+using Base.Test
+
+
+# println("""
+# % The initially twisted cantilever beam is one of the standard test
+# % problems for verifying the finite-element accuracy [1]. The beam is
+# % clamped at one end and loaded either with unit in-plane or 
+# % unit out-of-plane force at the other. The centroidal axis of the beam is
+# % straight at the undeformed  configuration, while its cross-sections are
+# % twisted about the centroidal axis from 0 at the clamped end to pi/2 at
+# % the free end. 
+# %
+# % Reference:
+# % Zupan D, Saje M (2004) On "A proposed standard set of problems to test
+# % finite element accuracy": the twisted beam. Finite Elements in Analysis
+# % and Design 40: 1445-1451.  
+# """)
+function  Twisted_beam(dir)
+    E=0.29e8;
+    nu=0.22;
+    W=1.1;
+    L=12.;
+    t= 0.32;
+    nl=2; nt=1; nw=1; ref=7;
+    p=  1/W/t;
+    if (dir==2)
+        #   Loading in the Y direction
+        loadv=[0;p;0];dir=2;uzex=0.001753248285256; # Harder: 1.754e-3;
+    else
+        #  Loading in the Z direction
+        loadv=[0;0;p];dir=3;uzex=0.005424534868469; # Harder: 5.424e-3;
+    end
+    
+    tolerance =t/1000;
+    
+    fens,fes =H20block(L,W,t, nl*ref,nw*ref,nt*ref)
+
+    # Reshape into a twisted beam shape
+    for i=1:count (fens)
+        a=fens.xyz[i,1]/L*(pi/2); y=fens.xyz[i,2]-(W/2); z=fens.xyz[i,3]-(t/2);
+        fens.xyz[i,:]=[fens.xyz[i,1],y*cos(a)-z*sin(a),y*sin(a)+z*cos(a)];
+    end
+    
+    # Clamped end of the beam
+    l1 =fenodeselect(fens; box=[0 0 -100*W 100*W -100*W 100*W], inflate = tolerance)
+    essential1=dmake(node_list=l1,component=1:3,displacement=0.0)
+
+    # Traction on the opposite edge
+    boundaryfes =  meshboundary(fes);
+    Toplist  =feselect(fens,boundaryfes, box= [L L -100*W 100*W -100*W 100*W], inflate=  tolerance);
+    el1femm =  FEMMBase(subset(boundaryfes,Toplist), GaussRule(order=2,dim=2))
+    flux1=dmake(femm=el1femm,traction_vector=loadv)
+
+    
+    # Make the region
+    p=PropertyDeformationLinearIso(E,nu)
+    region1=dmake(fes=fes, property=p, integration_rule=GaussRule(order=2,dim=3))
+
+    # Model reduction type
+    mr=DeformationModelReduction3D
+
+    # Make model data
+    modeldata= dmake(modelreduction=mr,
+                     fens= fens,region=[region1],
+                     boundary_conditions=dmake(traction=[flux1],essential=[essential1]));
+
+    # Call the solver
+    modeldata=JFinEALE.DeformationLinearAlgorithmModule.linearstatics(modeldata)
+    geom=modeldata["geom"]
+    u=modeldata["u"]
+
+    # Extract the solution
+    nl=fenodeselect (fens, box=[L L -100*W 100*W -100*W 100*W],inflate=tolerance);
+    theutip=mean(u.values[nl,:],1)
+    #println("displacement =$(theutip[dir]) as compared to converged $uzex")
+    @test    abs(theutip[dir]-uzex)<1.0e-5
+    
+#println("$( abs(theutip[dir]-uzex)  )")
+    # # Write out mesh with displacements
+    # dadd!(modeldata,postprocessing=dmake(file=  "twisted_beam"))
+    # modeldata=JFinEALE.DeformationLinearAlgorithmModule.exportdeformation(modeldata)
+
+    # # Write out mesh with stresses
+    # dadd!(modeldata,postprocessing=dmake(file=  "twisted_beam", output=:Cauchy, component=:xy))
+    # modeldata=JFinEALE.DeformationLinearAlgorithmModule.exportstress(modeldata)
+
+    # # Write out mesh with von Mises stresses
+    # dadd!(modeldata,postprocessing=dmake(file=  "twisted_beam", output=:vm))
+    # modeldata=JFinEALE.DeformationLinearAlgorithmModule.exportstress(modeldata)
+
+    true
+
+end
+Twisted_beam(2)
+ Twisted_beam(3)
+   
+end
