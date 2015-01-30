@@ -83,40 +83,43 @@ function update!{MR<:DeformationModelReduction3D}(::Type{MR},
 #           the material update is lost!
     #
     
-# if (isfield(context,'strain'))
-#     Ev = context.strain;# strain in material coordinates
-# else# This is an approximation valid only for small displacements
-#     gradu=context.F-eye(3);
-#     Ev = strain_3x3t_to_6v (self,(gradu+gradu')/2);
-    # end
+    Ev=JFFlt[]                  # it is empty: we need to get it from context
+    output=:Cauchy
+    dT= 0.0
+    for arg in context
+        sy, val = arg
+        if sy==:strain
+            Ev=val
+        elseif sy==:output
+            output=val
+        elseif sy==:dT
+            dT=val
+        end
+    end
     D=zeros(JFFlt,6,6)
     tangentmoduli!(MR, self, D; context...);# local material stiffness
     tSigma = thermalstress(MR, self; context...);# stress in local coordinates
     stress = D * Ev + tSigma;
-    # if isfield(context,'output')
-    #     switch context.output
-    #         case 'Cauchy'
-    #             out = stress;
-    #         case 'vol_strain'
-    #             out = sum(Ev(1:3));
-    #         case 'pressure'
-    #             out = -(sum(stress(1:3))/3);
-    #         case 'princCauchy'
-    #             t = stress_6v_to_3x3t (self,stress);
-    #             [V,D]=eig(t);
-    #             out =sort(diag(D),'descend');
-    #         case {'vonMises','vonmises','von_mises','vm'}
-    #             s1=stress(1);s2=stress(2);s3=stress(3);
-    #             s4=stress(4);s5=stress(5);s6=stress(6);
-    #             out = sqrt(1/2*((s1-s2)^2+(s1-s3)^2+(s2-s3)^2+6*(s4^2+s5^2+s6^2)));
-    #         otherwise
-    #             out = [];
-    #     end
-    # else
-    #     out = stress;
-    # end
+    if output==:Cauchy
+        out = stress;
+    elseif output==:pressure
+        out = -sum(stress[1:3])/3;
+    elseif output==:volstrain
+        out = sum(Ev[1:3]);  
+    elseif output==:princCauchy
+        t=zeros(JFFlt,3,3)
+        t = stress6vto3x3t!(stress,t);
+        ep=eig(t);
+        out =sort(ep[1]);    
+    elseif output==:vonMises || output==:vonmises || output==:von_mises || output==:vm 
+        s1=stress[1];s2=stress[2];s3=stress[3];
+        s4=stress[4];s5=stress[5];s6=stress[6];
+        out = sqrt(1/2*((s1-s2)^2+(s1-s3)^2+(s2-s3)^2+6*(s4^2+s5^2+s6^2)));
+    else
+        out = stress;
+    end
     newms = ms;
-    return;
+    return out,newms;
 end
 export update!
 
@@ -139,7 +142,7 @@ function thermalstress{MR<:DeformationModelReduction3D}(::Type{MR},
             if (dT!= 0.0)    # nonzero temperature differential?
                 D=zeros(JFFlt,6,6)
                 tangentmoduli!(MR, self, D; context...);# local material stiffness
-                v = -D[:,1:3]*(dT*self.property.CTE);
+                v = -D[:,1:3]*(self.property.CTE)*dT;
                 return v
             end
         end
