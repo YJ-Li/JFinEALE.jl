@@ -734,5 +734,79 @@ function exportmode(modeldata::ModelDataDictionary)
     return modeldata
 end
 
+function exportstresselementwise(modeldata::ModelDataDictionary)
+    # Export the stress/deformation for visualization in Paraview.
+    # 
+    # Arguments
+    # model_data= model data as produced by linearstatics()
+    # model_data.postprocessing = optional struct with optional fields
+    #     u_scale = deflection scale, default 1.0;
+    #     camera  = camera, default is [] which means use the default 
+    #           orientation of the view;
+    #     draw_mesh= should the mesh be rendered?  Boolean.  Default true.
+    #     cmap= colormap (default: jet)
+    #     boundary_only= should we plot only the boundary?  Boolean.  Default true.
+    #     edgecolor= color used for the mesh edges
+    # Output
+    # model_data = structure on input updated with
+    # model_data.postprocessing.gv=graphic viewer used to display the data
+    #    
+
+    # Defaults
+    boundary_only= false;
+    ffile= "stress"
+    output=:Cauchy
+    component=1
+    outputRm=MaterialOrientation()
+    # Let's have a look at what's been specified
+    postprocessing = get(modeldata, "postprocessing", nothing); 
+    if (postprocessing!=nothing)
+        boundary_only=  get(postprocessing, "boundary_only", boundary_only);
+        ffile=  get(postprocessing, "file", ffile);
+        output=  get(postprocessing, "output", output);
+        component=  get(postprocessing, "component", component);
+        outputRm=  get(postprocessing, "outputRm", outputRm);
+    end
+    
+    fens=get(()->error("Must get fens!"), modeldata, "fens")
+    geom = get(()->error("Must get geometry field!"), modeldata, "geom");  
+    u = get(()->error("Must get displacement field!"), modeldata, "u"); 
+    modelreduction = get(()->error("Must get model reduction!"), modeldata, "modelreduction"); 
+
+    
+    if (typeof(component)==Symbol)
+        componentnum=stresscomponentmap(modelreduction)[component]
+    else
+        componentnum=component
+    end
+    
+    # Plot the surface for each region
+    region=get(()->error("Must get region!"), modeldata, "region")
+    for i=1:length(region)
+        femm=get(region[i], "femm", nothing);
+        rfile = ffile * string(output) * string(component) * "$i" * ".vtk";
+        # Find the finite elements that are exposed on the boundary
+        boundaryfes = meshboundary (femm.femmbase.fes);
+        oon_boundary =zeros(count(fens),1);
+        oon_boundary[boundaryfes.conn[:]] =1;
+        sfemm= deepcopy(femm)
+        ewisevalues=0.0*zeros(typeof(u.values[1]),count(femm.femmbase.fes))
+        for feix=1:count(femm.femmbase.fes)
+            sfemm.femmbase.fes =subset(femm.femmbase.fes,[feix]);
+            if (!boundary_only) || (boundary_only)&&(sum(oon_boundary[sfemm.femmbase.fes.conn[:]])>0)
+                # Create the color field
+                fld= fieldfromintegpoints(modelreduction,sfemm, 
+                                          geom, u, output, componentnum)
+                ewisevalues[feix]=sum(fld.values[:])/nfensperfe(femm.femmbase.fes)
+            end
+        end
+        vtkexportmesh (rfile, fens, femm.femmbase.fes;
+                       scalars=ewisevalues, scalars_name=string(output)*string(component),
+                       vectors=u.values, vectors_name ="u")
+    end
+    
+    return modeldata
+end
+
 
 end
