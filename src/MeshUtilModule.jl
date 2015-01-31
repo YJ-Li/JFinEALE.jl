@@ -38,6 +38,22 @@ function findhyperface!(container,hyperface)
     return [], 0
 end
 
+function ontosphere(xyz::JFFltMat,radius::JFFlt)
+# % Project nodes onto a sphere of given radius.
+# %
+# % function fens= onto_sphere(fens,radius,list)
+# %
+# % fens = finite element node set,
+# % radius = radius of the sphere,
+# % list = optional argument, if not empty then only 
+# %	     the nodes in the list are to be moved; otherwise all nodes are moved. 
+    
+    for j=1:size(xyz,1)
+        xyz[j,:] =xyz[j,:]*radius/norm(xyz[j,:]);
+    end
+    return xyz;
+end
+
 
 end
 

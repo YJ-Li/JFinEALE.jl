@@ -293,4 +293,81 @@ function Q4toQ8(fens::FENodeSetModule.FENodeSet, fes::FESetModule.FESetQ4)
 end
 export Q4toQ8
 
+
+# Refine a mesh of quadrilaterals by bisection
+#
+# function [fens,fes] = Q4_refine(fens,fes)
+#
+# Examples: 
+# [fens,fes] = Q4_quadrilateral([-1,-1;2,-2;3,3;-1,1],2,3,[]);
+# [fens,fes] = Q4_refine(fens,fes);
+# drawmesh({fens,fes},'nodes','fes','facecolor','y', 'linewidth',2); hold on
+
+function Q4refine(fens::FENodeSetModule.FENodeSet, fes::FESetModule.FESetQ4)
+    nedges=4;
+    ec = [1  2; 2  3; 3  4; 4  1];
+    # make a search structure for edges
+    # Additional node numbers are numbered from here
+    newn=FENodeSetModule.count(fens)+1;
+    # make a search structure for edges
+    edges=MeshUtilModule.makecontainer();
+    for i= 1:size(fes.conn,1)
+        conn = fes.conn[i,:];
+        for J = 1:nedges
+            ev=conn[ec[J,:]];
+            newn = MeshUtilModule.addhyperface!(edges, ev, newn);
+        end
+    end
+    # make a search structure for faces
+    faces=MeshUtilModule.makecontainer();
+    for i= 1:size(fes.conn,1)
+        conn = fes.conn[i,:];
+        newn = MeshUtilModule.addhyperface!(faces, conn, newn);
+    end
+    xyz1 =fens.xyz;             # Pre-existing nodes
+    # Allocate for vertex nodes plus edge nodes plus face nodes
+    xyz =zeros(JFFlt,newn-1,size(xyz1,2));
+    xyz[1:size(xyz1,1),:] = xyz1; # existing nodes are copied over
+    # calculate the locations of the new nodes
+    # and construct the new nodes
+    for i in keys(edges)
+        C=edges[i];
+        for J = 1:length(C)
+            xyz[C[J].n,:]=mean(xyz[[i,C[J].o],:],1);
+        end
+    end
+    for i in keys(faces)
+        C=faces[i];
+        for J = 1:length(C)
+            xyz[C[J].n,:]=mean(xyz[[i,C[J].o],:],1);
+        end
+    end
+    
+    # construct new geometry cells: for new elements out of one old one
+    nconn =zeros(JFInt,4*size(fes.conn,1),4);
+    nc=1;
+    for i= 1:size(fes.conn,1)
+        conn = fes.conn[i,:];
+        econn=zeros(JFInt,1,nedges);
+        for J = 1:nedges
+            ev=conn[ec[J,:]];
+            h,n=MeshUtilModule.findhyperface!(edges, ev);
+            econn[J]=n;
+        end
+        h,inn=MeshUtilModule.findhyperface!(faces, conn);
+        nconn[nc,:] =[conn[1] econn[1] inn econn[4]];
+        nc= nc+ 1;
+        nconn[nc,:] =[conn[2] econn[2] inn econn[1]];
+        nc= nc+ 1;
+        nconn[nc,:] =[conn[3] econn[3] inn econn[2]];
+        nc= nc+ 1;
+        nconn[nc,:] =[conn[4] econn[4] inn econn[3]];
+        nc= nc+ 1;
+    end
+    fens =FENodeSetModule.FENodeSet(xyz);
+    nfes = FESetModule.FESetQ4(conn=nconn);
+    return fens,nfes            # I think I should not be overwriting the input!
+end
+export Q4refine
+
 end
