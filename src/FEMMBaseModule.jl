@@ -53,7 +53,6 @@ type FEMMBase{T<:FESet}
     fes::T # finite element set object
     integration_rule::IntegRule  # integration rule object
     mo::MaterialOrientation # updater of the material orientation matrix
-    fen2fe_map  # map from finite element nodes to connected finite elements
     
     function  FEMMBase (fes,
                         integration_rule,
@@ -101,17 +100,6 @@ function  integrationdata (self::FEMMBase)
     return npts::JFInt, Ns::Array{JFFltMat,2}, gradNparams::Array{JFFltMat,2}, w::JFFltMat, pc::JFFltMat
 end
 export integrationdata
-
-#         function fen2fe_map =node_to_element_map(self)
-#      Create a map from nodes to elements.
-#     
-#      function fen2fe_map =node_to_element_map(self)
-#     
-#             if (isempty(self.fen2fe_map))
-#                 self.fen2fe_map=fenode_to_fe_map (struct ('fes',self.fes));
-#             end
-#             fen2fe_map =self.fen2fe_map;
-#         end
 
 
 function integratefieldfunction{T<:Number,R} (self::FEMMBase,
