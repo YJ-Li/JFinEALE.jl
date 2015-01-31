@@ -226,7 +226,7 @@ function finealemesh(fens,fes,meshmfile)
         end
         print(fid,fes.conn[i,end],"\n");
     end
-    print(fid,"]));\n");
+    print(fid,"],'axisymm',$(fes.axisymm)));\n");
     print(fid,"end\n");
     fid=close(fid);
 end
