@@ -318,12 +318,7 @@ function Q4refine(fens::FENodeSetModule.FENodeSet, fes::FESetModule.FESetQ4)
             newn = MeshUtilModule.addhyperface!(edges, ev, newn);
         end
     end
-    # make a search structure for faces
-    faces=MeshUtilModule.makecontainer();
-    for i= 1:size(fes.conn,1)
-        conn = fes.conn[i,:];
-        newn = MeshUtilModule.addhyperface!(faces, conn, newn);
-    end
+    newn=  newn+size(fes.conn,1) # add the interior nodes to the total
     xyz1 =fens.xyz;             # Pre-existing nodes
     # Allocate for vertex nodes plus edge nodes plus face nodes
     xyz =zeros(JFFlt,newn-1,size(xyz1,2));
@@ -336,13 +331,6 @@ function Q4refine(fens::FENodeSetModule.FENodeSet, fes::FESetModule.FESetQ4)
             xyz[C[J].n,:]=mean(xyz[[i,C[J].o],:],1);
         end
     end
-    for i in keys(faces)
-        C=faces[i];
-        for J = 1:length(C)
-            xyz[C[J].n,:]=mean(xyz[[i,C[J].o],:],1);
-        end
-    end
-    
     # construct new geometry cells: for new elements out of one old one
     nconn =zeros(JFInt,4*size(fes.conn,1),4);
     nc=1;
@@ -354,7 +342,9 @@ function Q4refine(fens::FENodeSetModule.FENodeSet, fes::FESetModule.FESetQ4)
             h,n=MeshUtilModule.findhyperface!(edges, ev);
             econn[J]=n;
         end
-        h,inn=MeshUtilModule.findhyperface!(faces, conn);
+        inn=size(xyz,1)-size(fes.conn,1)+i
+        xyz[inn,:]=mean(xyz[conn[:],:],1); # interior node
+        #h,inn=MeshUtilModule.findhyperface!(faces, conn);
         nconn[nc,:] =[conn[1] econn[1] inn econn[4]];
         nc= nc+ 1;
         nconn[nc,:] =[conn[2] econn[2] inn econn[1]];
