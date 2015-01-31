@@ -119,7 +119,7 @@ export Q4block
 export Q4blockx
 export Q8block
 export Q4toQ8
-
+export Q4refine
 
 include("MeshLineModule.jl")
 using JFinEALE.MeshLineModule
@@ -293,6 +293,7 @@ using JFinEALE.FEMMDeformationLinearModule
 export FEMMDeformationLinear
 export stiffness
 export nzebcloadsstiffness
+export thermalstrainloads
 export mass
 export inspectintegpoints
 export fieldfromintegpoints
