@@ -517,9 +517,6 @@ function update!{MR<:DeformationModelReduction2DAxisymm}(::Type{MR},
     tangentmoduli!(MR,self,D; context...)
     tSigma = thermalstress(MR,self; context...);
     stress = D * Ev + tSigma;
-    # println("D=$( D  )")
-    #  println("Ev=$( Ev )")
-    # println("stress=$( stress )")
     if output==:Cauchy
         out = stress;
     elseif output==:pressure
@@ -556,7 +553,7 @@ function thermalstress{MR<:DeformationModelReduction2DAxisymm}(::Type{MR},
             dT=val
             D=zeros(JFFlt,4,4)
             tangentmoduli!(MR, self, D; context...);# local material stiffness
-            v = -D*(dT[1]*[self.property.CTE; 0.0]);
+            v = -D*[self.property.CTE; 0.0]*dT;
             return v
             #     case 'strain'
             #         D=  self.property.tangent_moduli(context);% need 3-D
