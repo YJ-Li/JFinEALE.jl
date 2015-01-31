@@ -502,11 +502,9 @@ function fieldfromintegpoints{MR<:DeformationModelReduction,
 #     fld - the new field that can be used to map values the colors
 #
    fes=self.femmbase.fes;
-    # Make the inverse map from finite element nodes to gcells
-    fen2fe =FENodeToFEMap(fes.conn,nfens(geom))
     # Container of intermediate results
-    sum_inv_dist =zeros(JFFlt,length(fen2fe.map));
-    sum_quant_inv_dist =zeros(JFFlt,length(fen2fe.map),length(component));
+    sum_inv_dist =zeros(JFFlt,nfens(geom));
+    sum_quant_inv_dist =zeros(JFFlt,nfens(geom),length(component));
     # The data for the field to be constructed is initialized
     nvals = zeros(JFFlt,nfens(geom),length(component));
      # Constants
@@ -525,7 +523,7 @@ function fieldfromintegpoints{MR<:DeformationModelReduction,
         d=zeros(JFFlt,length(conn))
         mindn=Inf
         for jjj=1:length(d)
-            d[jjj] =norm(x[jjj,:]-xyz);
+            d[jjj] =sum((x[jjj,:]-xyz).^2);
             if (d[jjj] > 0.0)
                 mindn=min(mindn,d[jjj])
             end
