@@ -67,6 +67,10 @@ function PropertyDeformationLinearIso(rho::JFFlt,E::JFFlt,nu::JFFlt,CTE::JFFlt)
     return PropertyDeformationLinearIso(rho,E,nu,zeros(JFFlt,3)+CTE,D)
 end
 
+function PropertyDeformationLinearIso(;rho::JFFlt= 1.0,E::JFFlt= 1.0,nu::JFFlt= 0.0,CTE::JFFlt=  0.0)
+    return PropertyDeformationLinearIso(rho,E,nu,CTE)
+end
+
 function  tangentmoduli3d!(self::PropertyDeformationLinearIso,D::JFFltMat; context...)
     # Calculate the material stiffness matrix.
     #
