@@ -175,4 +175,147 @@ function nzebcloadsconductivity{S<:FESet,A<:SysvecAssemblerBase}(self::FEMMHeatD
 end
 export nzebcloadsconductivity
 
+function surfacetransfer{S<:FESet}(self::FEMMHeatDiffusion{S}, 
+                                   geom::NodalField{JFFlt},
+                                   temp::NodalField{JFFlt},surfacetransfercoeff::JFFlt)
+    assembler = SysvecAssembler()
+    return  surfacetransfer(self,assembler,geom,temp,surfacetransfercoeff);
+end
+export surfacetransfer
+
+function surfacetransfer{S<:FESet,A<:SysvecAssemblerBase}(self::FEMMHeatDiffusion{S}, assembler::A,
+                                                          geom::NodalField{JFFlt},
+                                                          temp::NodalField{JFFlt},surfacetransfercoeff::JFFlt)
+    # Compute the surface heat transfer matrix.
+    #
+    # function H = surface_transfer(self, assembler, geom, temp)
+    #
+    # Arguments
+    #           self  = heat diffusion model  
+    #           assembler = descendent of the sysmat_assembler class
+    #           geom=geometry field
+    #           temp=temperature field
+    #
+    # Returns H as a matrix.
+    
+    fes=self.femmbase.fes;                       # the finite element set
+    # Constants
+    const nfes::JFInt=count(fes); # number of finite elements in the set
+    const ndn::JFInt= ndofn(temp); # number of degrees of freedom per node
+    const nne::JFInt =nfensperfe(fes); # number of nodes for element
+    const sdim::JFInt = ndofn(geom);            # number of space dimensions
+    const mdim::JFInt= manifdim(fes); # manifold dimension of the element
+    const Hedim::JFInt =ndn*nne;             # dimension of the element matrix
+    # Precompute basis f. values + basis f. gradients wrt parametric coor
+    npts, Ns, gradNparams, w, pc = integrationdata(self.femmbase);
+    # Prepare assembler and temporaries
+    He::JFFltMat =zeros(JFFlt,Hedim,Hedim);                # element matrix -- used as a buffer
+    conn::JFIntMat=zeros(JFInt,nne,1); # element nodes -- used as a buffer
+    x::JFFltMat =zeros(JFFlt,nne,sdim); # array of node coordinates -- used as a buffer
+    dofnums::JFIntMat=zeros(JFInt,1,Hedim); # degree of freedom array -- used as a buffer
+    loc::JFFltMat =zeros(JFFlt,1,sdim); # quadrature point location -- used as a buffer
+    J::JFFltMat =eye(JFFlt,sdim,mdim); # Jacobian matrix -- used as a buffer
+    startassembly!(assembler, Hedim, Hedim, nfes, temp.nfreedofs, temp.nfreedofs);
+    for i=1:nfes # Loop over elements
+        getconn!(fes,conn,i);
+        gathervaluesasmat!(geom,x,conn);# retrieve element coordinates
+        fill!(He, 0.0); # Initialize element matrix
+        for j=1:npts # Loop over quadrature points 
+            At_mul_B!(loc,Ns[j],x);# Quadrature points location
+            At_mul_B!(J, x, gradNparams[j]); # calculate the Jacobian matrix 
+            Jac = FESetModule.Jacobiansurface(fes,conn, Ns[j], J, x);# Jacobian
+            @inbounds for nx=1:Hedim # Do: He = He + ((h*Jac*w(j))*Ns{j})*Ns{j}' ; only the upper triangle
+                @inbounds for mx=1:nx # only the upper triangle
+                    He[mx,nx] = He[mx,nx] + (surfacetransfercoeff*Jac*w[j])*Ns[j][mx]*Ns[j][nx];
+                end
+            end
+            @inbounds for nx=1:Hedim #  Do: He = He + ((h*Jac*w(j))*Ns{j})*Ns{j}'
+                @inbounds for mx=nx+1:Hedim # complete the lower triangle
+                    He[mx,nx] = He[nx,mx]
+                end
+            end
+        end # Loop over quadrature points
+        gatherdofnumsasvec!(temp,dofnums,conn);# retrieve degrees of freedom
+        assemble!(assembler, He, dofnums, dofnums);# assemble symmetric matrix
+    end # Loop over elements
+    return makematrix!(assembler);
+end
+export surfacetransfer
+
+function surfacetransferloads{S<:FESet}(self::FEMMHeatDiffusion{S}, 
+                                        geom::NodalField{JFFlt},
+                                        temp::NodalField{JFFlt},
+                                        ambtemp::NodalField{JFFlt},
+                                        surfacetransfercoeff::JFFlt)
+    assembler = SysvecAssembler()
+    return  surfacetransferloads(self,assembler,geom,temp,ambtemp,surfacetransfercoeff);
+end
+export surfacetransferloads
+
+function surfacetransferloads{S<:FESet,
+    A<:SysvecAssemblerBase}(self::FEMMHeatDiffusion{S}, assembler::A,
+                            geom::NodalField{JFFlt},
+                            temp::NodalField{JFFlt},
+                            ambtemp::NodalField{JFFlt},
+                            surfacetransfercoeff::JFFlt)
+    # Compute the load vector corresponding to surface heat transfer.
+#
+# function F = surface_transfer_loads (self, assembler, geom, temp, amb)
+#
+#    Arguments
+#     assembler =  descendent of sysvec_assembler
+#     geom=geometry field
+#     temp=temperature field
+#     amb = ambient temperature field
+#
+ 
+    fes=self.femmbase.fes;                       # the finite element set
+    # Constants
+    const nfes::JFInt=count(fes); # number of finite elements in the set
+    const ndn::JFInt= ndofn(temp); # number of degrees of freedom per node
+    const nne::JFInt =nfensperfe(fes); # number of nodes for element
+    const sdim::JFInt = ndofn(geom);            # number of space dimensions
+    const mdim::JFInt= manifdim(fes); # manifold dimension of the element
+    const Hedim::JFInt =ndn*nne;             # dimension of the element matrix
+    # Precompute basis f. values + basis f. gradients wrt parametric coor
+    npts, Ns, gradNparams, w, pc = integrationdata(self.femmbase);
+    # Prepare assembler and temporaries
+    He::JFFltMat =zeros(JFFlt,Hedim,Hedim);                # element matrix -- used as a buffer
+    conn::JFIntMat=zeros(JFInt,nne,1); # element nodes -- used as a buffer
+    x::JFFltMat =zeros(JFFlt,nne,sdim); # array of node coordinates -- used as a buffer
+    dofnums::JFIntMat=zeros(JFInt,1,Hedim); # degree of freedom array -- used as a buffer
+    loc::JFFltMat =zeros(JFFlt,1,sdim); # quadrature point location -- used as a buffer
+    J::JFFltMat =eye(JFFlt,sdim,mdim); # Jacobian matrix -- used as a buffer
+    pT::JFFltMat=zeros(JFFlt,Hedim,1);
+    startassembly!(assembler, Hedim, Hedim, nfes, temp.nfreedofs, temp.nfreedofs);
+    for i=1:nfes # Loop over elements
+        getconn!(fes,conn,i);
+        gathervaluesasvec!(ambtemp,pT,conn);# retrieve element coordinates
+        if norm(pT) != 0     # Is the load nonzero?
+            gathervaluesasmat!(geom,x,conn);# retrieve element coordinates
+            fill!(He, 0.0); # Initialize element matrix
+            for j=1:npts # Loop over quadrature points 
+                At_mul_B!(loc,Ns[j],x);# Quadrature points location
+                At_mul_B!(J, x, gradNparams[j]); # calculate the Jacobian matrix 
+                Jac = FESetModule.Jacobiansurface(fes,conn, Ns[j], J, x);# Jacobian
+                @inbounds for nx=1:Hedim # Do: He = He + ((h*Jac*w(j))*Ns{j})*Ns{j}' ; only the upper triangle
+                    @inbounds for mx=1:nx # only the upper triangle
+                        He[mx,nx] = He[mx,nx] + (surfacetransfercoeff*Jac*w[j])*Ns[j][mx]*Ns[j][nx];
+                    end
+                end
+                @inbounds for nx=1:Hedim #  Do: He = He + ((h*Jac*w(j))*Ns{j})*Ns{j}'
+                    @inbounds for mx=nx+1:Hedim # complete the lower triangle
+                        He[mx,nx] = He[nx,mx]
+                    end
+                end
+            end # Loop over quadrature points
+            gatherdofnumsasvec!(temp,dofnums,conn); # retrieve degrees of freedom
+            assemble!(assembler, He*pT, dofnums); # assemble element load vector
+        end
+    end
+    F= makevector!(assembler);
+    return F
+end
+export surfacetransferloads
+
 end

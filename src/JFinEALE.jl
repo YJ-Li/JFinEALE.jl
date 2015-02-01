@@ -277,6 +277,7 @@ export conductivity
 export conductivity
 export nzebcloadsconductivity
 export nzebcloadsconductivity
+export surfacetransfer
 
 include("FEMMAcousticsModule.jl")
 using JFinEALE.FEMMAcousticsModule
