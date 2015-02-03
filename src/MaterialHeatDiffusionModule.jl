@@ -10,6 +10,11 @@ type MaterialHeatDiffusion
 end
 export MaterialHeatDiffusion
 
+function MaterialHeatDiffusion()
+    return MaterialHeatDiffusion(PropertyHeatDiffusion())
+end
+
+
 function update(self, ms, gradtheta, Rm; output = nothing, outputRm =nothing)
   # # _Update_ material state.
   # #

@@ -268,7 +268,7 @@ function compactfens(fens::FENodeSetModule.FENodeSet, connected::JFIntVec)
 end
 export compactfens
 
-function mergemeshes{T<:FESet}(fens1::FENodeSet, fes1::T, fens2::FENodeSet, fes2::T, tolerance::JFFlt)
+function mergemeshes{T1<:FESet,T2<:FESet}(fens1::FENodeSet, fes1::T1, fens2::FENodeSet, fes2::T2, tolerance::JFFlt)
     # % Merge together two meshes.
     # %
     # % function [fens,fes1,fes2] = merge_meshes(fens1, fes1, fens2,

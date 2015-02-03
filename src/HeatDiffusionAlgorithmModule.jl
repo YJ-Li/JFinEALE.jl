@@ -1,14 +1,6 @@
 module HeatDiffusionAlgorithmModule
 
-using JFinEALE.JFFoundationModule
-using JFinEALE.FESetModule
-using JFinEALE.NodalFieldModule
-using JFinEALE.ForceIntensityModule
-using JFinEALE.PropertyHeatDiffusionModule
-using JFinEALE.MaterialHeatDiffusionModule
-using JFinEALE.MaterialOrientationModule
-using JFinEALE.FEMMBaseModule
-using JFinEALE.FEMMHeatDiffusionModule
+using JFinEALE
 
 function steadystate(modeldata::ModelDataDictionary)
 # Steady-state heat conduction solver.
@@ -152,33 +144,18 @@ function steadystate(modeldata::ModelDataDictionary)
     end
     setindex!(modeldata, region, "region"); # put the generated data back
     
-    # # Create the finite element models for the boundary conditions
-    # # Convection boundary conditions:
-    # if (isfield(modeldata.boundary_conditions, 'convection' ))
-    #     amb = 0*clone(temp,'amb'); # create the ambient temperature field
-    #     for j=1:length(modeldata.boundary_conditions.convection)
-    #         convection =modeldata.boundary_conditions.convection{j};
-    #         # Note that we need to supply the surface heat transfer coefficient
-    #         convection.fem = femm_heat_diffusion (struct ('material',[],...
-    #             'fes',convection.fes,...
-    #             'integration_rule',convection.integration_rule,...
-    #             'surface_transfer', convection.surface_transfer_coefficient));
-    #         modeldata.boundary_conditions.convection{j} =convection;    
-    #     end
-    #     clear convection 
-    # end
-    # #  Flux boundary condition:
-    # if (isfield(modeldata.boundary_conditions, 'flux' ))
-    #     for j=1:length(modeldata.boundary_conditions.flux)
-    #         flux =modeldata.boundary_conditions.flux{j};
-    #         flux.femm = femm_heat_diffusion (struct ('material',[],...
-    #             'fes',flux.fes,...
-    #             'integration_rule',flux.integration_rule));
-    #         modeldata.boundary_conditions.flux{j}=flux;    
-    #     end
-    #     clear flux fi  femm
-    # end
-     
+    # Create the finite element models for the boundary conditions
+    # Convection boundary conditions:
+    convection = get(boundary_conditions, "convection", nothing);
+    if (convection!= nothing)
+        for i=1:length(convection)
+            fes=get(()->error("Must get finite elements!"), convection[i], "fes");
+            integration_rule=get(()->error("Must get integration rule!"), convection[i], "integration_rule");
+            # Note that we need to supply the surface heat transfer coefficient
+            femm = FEMMHeatDiffusion(FEMMBase(fes,integration_rule,MaterialOrientation()),MaterialHeatDiffusion());
+            setindex!(convection[i], femm, "femm");
+        end
+    end
      
     # Construct the system conductivity matrix 
     K=  spzeros(temp.nfreedofs,temp.nfreedofs); # (all zeros, for the moment)
@@ -202,33 +179,40 @@ function steadystate(modeldata::ModelDataDictionary)
         end
     end
      
-    # # Process the convection boundary condition
-    # if (isfield(modeldata.boundary_conditions, 'convection' ))
-    #     amb = 0*clone(temp,'amb'); # create the ambient temperature field
-    #     for j=1:length(modeldata.boundary_conditions.convection)
-    #         convection =modeldata.boundary_conditions.convection{j};
-    #         # Apply the fixed ambient temperature
-    #         fenids= connected_nodes(convection.fes);
-    #         fixed=ones(length(fenids),1);
-    #         comp=[];
-    #         T_fixed =0;# default
-    #         if (isfield( convection, 'ambient_temperature' ))
-    #             T_fixed = convection.ambient_temperature;
-    #         end
-    #         val=zeros(length(fenids),1)+T_fixed;
-    #         # This looks like we are setting essential boundary conditions, 
-    #         # but in reality we are modifying the ambient temperature
-    #         amb = set_ebc(amb, fenids, fixed, comp, val);
-    #         amb = apply_ebc (amb);
-    #         K = K + surface_transfer(convection.fem, sysmat_assembler_sparse, geom, temp);   
-    #         F = F + surface_transfer_loads(convection.fem, sysvec_assembler, geom, temp, amb); 
-    #         # Note that EBC will contribute through the surface heat transfer matrix            
-    #         if (isfield(modeldata.boundary_conditions, 'essential' ))
-    #             F = F + nz_ebc_loads_surface_transfer(convection.fem, sysvec_assembler, geom, temp);
-    #         end
-    #     end
-    #     clear convection fenids fixed comp T_fixed  val 
-    # end
+    # Process the convection boundary condition
+    convection = get(boundary_conditions, "convection", nothing);
+    if (convection!= nothing)
+        amb = clone(temp,"amb"); # create the ambient temperature field
+        for i=1:length(convection)
+            fes=get(()->error("Must get finite elements!"), convection[i], "fes");
+            # Apply the fixed ambient temperature
+            fenids= connectednodes(fes);
+            fixed=ones(length(fenids));
+            T_fixed=zeros(JFFlt,length(fenids));
+            ambient_temperature = get( convection[i], "ambient_temperature", nothing);
+            if ambient_temperature!=nothing
+                if (typeof(ambient_temperature)==Function)
+                    for k=1:length(fenids)
+                        T_fixed[k] = ambient_temperature(geom.values[fenids[k],:])[1];
+                    end
+                else
+                    fill! (T_fixed,ambient_temperature);
+                end
+            end
+            setebc!(amb,fenids[:],trues(length(fenids)),fenids[:]*0+1,T_fixed);
+            applyebc!(amb);
+            femm=get(()->error("Must get femm!"), convection[i], "femm");
+            surface_transfer_coefficient=get(()->error("Must get surface_transfer_coefficient!"),
+                                             convection[i], "surface_transfer_coefficient");
+            K = K + surfacetransfer(femm, geom, temp, surface_transfer_coefficient);   
+            F = F + surfacetransferloads(femm, geom, temp, amb, surface_transfer_coefficient); 
+            # Note that EBC will contribute through the surface heat transfer matrix            
+            essential = get(boundary_conditions, "essential", nothing);
+            if (essential!= nothing)
+                F = F + nzebcsurfacetransferloads(femm, geom, temp, surface_transfer_coefficient);
+            end
+        end
+    end
     
     # # Process the flux boundary condition
     flux = get(boundary_conditions, "flux", nothing);

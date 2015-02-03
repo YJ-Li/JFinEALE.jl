@@ -16,8 +16,12 @@ type PropertyHeatDiffusion
 end
 export PropertyHeatDiffusion
 
-function  PropertyHeatDiffusion (thermal_conductivity,specific_heat=0.0)
-    return  PropertyHeatDiffusion (thermal_conductivity,specific_heat)
+function  PropertyHeatDiffusion (thermal_conductivity)
+    return  PropertyHeatDiffusion (thermal_conductivity,0.0)
+end
+
+function  PropertyHeatDiffusion ()
+    return  PropertyHeatDiffusion (zeros(1,1),0.0)
 end
 
 end

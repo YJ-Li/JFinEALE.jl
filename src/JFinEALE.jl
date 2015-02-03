@@ -278,6 +278,11 @@ export conductivity
 export nzebcloadsconductivity
 export nzebcloadsconductivity
 export surfacetransfer
+export surfacetransfer
+export surfacetransferloads
+export surfacetransferloads
+export nzebcsurfacetransferloads
+export nzebcsurfacetransferloads
 
 include("FEMMAcousticsModule.jl")
 using JFinEALE.FEMMAcousticsModule
@@ -287,7 +292,6 @@ export nzebcloadsacousticmass
 export acousticstiffness
 export nzebcloadsacousticstiffness
 export acousticABC
-
 
 include("FEMMDeformationLinearModule.jl")
 using JFinEALE.FEMMDeformationLinearModule
