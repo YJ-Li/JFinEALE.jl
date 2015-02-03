@@ -1,4 +1,4 @@
-module HeatDiffusionAlgorithmModule
+module AlgoHeatDiffusionModule
 
 using JFinEALE
 

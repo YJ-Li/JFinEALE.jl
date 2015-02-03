@@ -1,4 +1,4 @@
-module AcousticsAlgorithmModule
+module AlgoAcousticsModule
 
 using JFinEALE.JFFoundationModule
 using JFinEALE.FESetModule

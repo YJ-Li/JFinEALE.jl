@@ -332,7 +332,7 @@ end
 module mxxxx1
 
 using JFinEALE
-using JFinEALE.DeformationLinearAlgorithmModule
+using JFinEALE.AlgoDeformationLinearModule
 using JFinEALE.MeshExportModule
 using Base.Test
 
@@ -401,7 +401,7 @@ function  Twisted_beam(dir)
                      boundary_conditions=dmake(traction=[flux1],essential=[essential1]));
 
     # Call the solver
-    modeldata=JFinEALE.DeformationLinearAlgorithmModule.linearstatics(modeldata)
+    modeldata=JFinEALE.AlgoDeformationLinearModule.linearstatics(modeldata)
     geom=modeldata["geom"]
     u=modeldata["u"]
 
@@ -414,15 +414,15 @@ function  Twisted_beam(dir)
     #println("$( abs(theutip[dir]-uzex)  )")
     # # Write out mesh with displacements
     # dadd!(modeldata,postprocessing=dmake(file=  "twisted_beam"))
-    # modeldata=JFinEALE.DeformationLinearAlgorithmModule.exportdeformation(modeldata)
+    # modeldata=JFinEALE.AlgoDeformationLinearModule.exportdeformation(modeldata)
 
     # # Write out mesh with stresses
     # dadd!(modeldata,postprocessing=dmake(file=  "twisted_beam", output=:Cauchy, component=:xy))
-    # modeldata=JFinEALE.DeformationLinearAlgorithmModule.exportstress(modeldata)
+    # modeldata=JFinEALE.AlgoDeformationLinearModule.exportstress(modeldata)
 
     # # Write out mesh with von Mises stresses
     # dadd!(modeldata,postprocessing=dmake(file=  "twisted_beam", output=:vm))
-    # modeldata=JFinEALE.DeformationLinearAlgorithmModule.exportstress(modeldata)
+    # modeldata=JFinEALE.AlgoDeformationLinearModule.exportstress(modeldata)
 
     true
 

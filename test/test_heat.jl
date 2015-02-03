@@ -1,5 +1,5 @@
 using JFinEALE
-using JFinEALE.HeatDiffusionAlgorithmModule
+using JFinEALE.AlgoHeatDiffusionModule
 using Base.Test
 
 function Poisson1()
@@ -126,7 +126,7 @@ function annulus_Q4_example_algo()
                      boundary_conditions=dmake(flux=[flux1,flux2],essential=[essential1]));
 
     # Call the solver
-    modeldata=HeatDiffusionAlgorithmModule.steadystate(modeldata)
+    modeldata=AlgoHeatDiffusionModule.steadystate(modeldata)
     geom=modeldata["geom"]
     Temp=modeldata["temp"]
     #println("Minimum/maximum temperature= $(minimum(Temp.values))/$(maximum(Temp.values)))")
@@ -264,7 +264,7 @@ function Poisson_FE_example_algo()
 
 
     # Call the solver
-    modeldata=HeatDiffusionAlgorithmModule.steadystate(modeldata)
+    modeldata=AlgoHeatDiffusionModule.steadystate(modeldata)
 
     #println("Total time elapsed = ",time() - t0,"s")
 

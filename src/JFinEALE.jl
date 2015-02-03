@@ -304,14 +304,14 @@ export inspectintegpoints
 export fieldfromintegpoints
 
 
-include("AcousticsAlgorithmModule.jl")
-using JFinEALE.AcousticsAlgorithmModule
+include("AlgoAcousticsModule.jl")
+using JFinEALE.AlgoAcousticsModule
 
-include("HeatDiffusionAlgorithmModule.jl")
-using JFinEALE.HeatDiffusionAlgorithmModule
+include("AlgoHeatDiffusionModule.jl")
+using JFinEALE.AlgoHeatDiffusionModule
 
-include("DeformationLinearAlgorithmModule.jl")
-using JFinEALE.DeformationLinearAlgorithmModule
+include("AlgoDeformationLinearModule.jl")
+using JFinEALE.AlgoDeformationLinearModule
 
 end
 

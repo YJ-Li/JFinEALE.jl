@@ -1,4 +1,4 @@
-module DeformationLinearAlgorithmModule
+module AlgoDeformationLinearModule
 
 using JFinEALE
 
