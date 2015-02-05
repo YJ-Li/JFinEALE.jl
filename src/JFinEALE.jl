@@ -131,6 +131,7 @@ using JFinEALE.MeshTriangleModule
 export T3block
 export T3toT6
 export T6block
+export Q4toT3
 
 include("MeshHexahedronModule.jl")
 using JFinEALE.MeshHexahedronModule
