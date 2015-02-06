@@ -360,6 +360,44 @@ function Q4refine(fens::FENodeSetModule.FENodeSet, fes::FESetModule.FESetQ4)
 end
 export Q4refine
 
+# Convert a mesh of quadrilateral Q4's to two T3 triangles  each.
+#
+# function [fens,fes] = Q4_to_T3(fens,fes,options)
+#
+# options =attributes recognized by the constructor fe_T3, and
+# orientation = 'default' or 'alternate' chooses which diagonal is taken
+#      for splitting
+# Example: 
+#     [fens,fes] = Q4_quadrilateral([-1,-1;2,-2;3,3;-1,1],2,3,[]);
+#     [fens,fes] = Q4_to_T3(fens,fes,[]);
+#     drawmesh({fens,fes},'nodes','fes','facecolor','y', 'linewidth',2); hold on
+#
+#     [fens,fes] = Q4_quadrilateral([-1,-1;2,-2;3,3;-1,1],2,3,[]);
+#     [fens,fes] = Q4_to_T3(fens,fes,struct('orientation','alternate'));
+#     drawmesh({fens,fes},'nodes','fes','facecolor','y', 'linewidth',2); hold on
+# will generate triangles by using the alternate diagonal for splitting.
+# 
+# See also: Q4_to_T3_sd
 
+function Q4toT3(fens,fes::FESetQ4, orientation:: Symbol=:default)
+    connl1=[1, 2, 3];
+    connl2=[1, 3, 4];
+    if orientation==:alternate
+        connl1=[1, 2, 4];
+        connl2=[3, 4, 2];
+    end
+    nconns=zeros(JFInt,2*count(fes),3);
+    nc=1;
+    for i= 1:count(fes)
+        conn = fes.conn[i,:];
+        nconns[nc,:] =conn[connl1];
+        nc= nc+ 1;
+        nconns[nc,:] =conn[connl2];
+        nc= nc+ 1;
+    end
+    nfes = FESetModule.FESetT3(conn=nconns);
+    return fens,nfes            # I think I should not be overwriting the input!
+end
+export Q4toT3
 
 end
