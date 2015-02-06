@@ -128,10 +128,13 @@ export L2blockx
 
 include("MeshTriangleModule.jl")
 using JFinEALE.MeshTriangleModule
+export T3blockx
+export T3blockx
 export T3block
 export T3toT6
 export T6block
 export Q4toT3
+export T3refine
 
 include("MeshHexahedronModule.jl")
 using JFinEALE.MeshHexahedronModule

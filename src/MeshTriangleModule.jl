@@ -229,6 +229,37 @@ function Q4toT3(fens::FENodeSet,fes::FESetQ4,orientation:: Symbol=:default)
 end
 export Q4toT3
 
+function T3refine(fens::FENodeSet,fes::FESetT3)
+# Refine a mesh of 3-node tetrahedra by quadrisection.
+#
+# function [fens,fes] = T3_refine(fens,fes,options)
+#
+# Input/Output:
+# fens= finite element node set
+# fes = finite element set
+# options =  struct recognized by the constructor of T3
+#
+# Examples:
+#
+# [fens,fes] = T4_cylinderdel(3.1,1.7,2,2);
+# figure; drawmesh({fens,fes},'fes','facecolor','m'); hold on
+# [fens,fes] = T4_refine(fens,fes);
+# figure; drawmesh({fens,fes},'fes','facecolor','b'); hold on
+
+    fens,fes = T3toT6(fens,fes);
+    nconn=zeros(JFInt,4*size(fes.conn,1),3);
+    nc=1;
+    for i= 1:size(fes.conn,1)
+        c=fes.conn[i,:];
+        nconn[nc,:] =c[[1,4,6]];        nc= nc+ 1;
+        nconn[nc,:] =c[[2,5,4]];        nc= nc+ 1;
+        nconn[nc,:] =c[[3,6,5]];        nc= nc+ 1;
+        nconn[nc,:] =c[[4,5,6]];        nc= nc+ 1;
+    end
+    nfes = FESetModule.FESetT3(conn=nconn);
+    return fens,nfes            # I think I should not be overwriting the input!
+end
+export T3refine
 
 end
 
