@@ -307,7 +307,7 @@ export thermalstrainloads
 export mass
 export inspectintegpoints
 export fieldfromintegpoints
-
+export surfacenormalspringstiffness
 
 include("AlgoAcousticsModule.jl")
 using JFinEALE.AlgoAcousticsModule
