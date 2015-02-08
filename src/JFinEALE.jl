@@ -309,6 +309,11 @@ export inspectintegpoints
 export fieldfromintegpoints
 export surfacenormalspringstiffness
 
+include("FEMMDeformationWinklerModule.jl")
+using JFinEALE.FEMMDeformationWinklerModule
+export FEMMDeformationWinkler
+export surfacenormalspringstiffness
+
 include("AlgoAcousticsModule.jl")
 using JFinEALE.AlgoAcousticsModule
 
