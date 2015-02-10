@@ -2,6 +2,9 @@
 
 Finite element toolkit in Julia
 
+
+![Alt Sample mesh](https://www.dropbox.com/s/lwhbadvhymuhkng/ScreenHunter_31%20Feb.%2009%2020.54.jpg?dl=0 "JFinEALE.jl")
+
 This toolkit is a redesign of the Matlab toolkit
 
 [FinEALE](https://github.com/PetrKryslUCSD/FinEALE): Finite Element Analysis Learning Environment
