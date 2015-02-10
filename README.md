@@ -3,7 +3,7 @@
 Finite element toolkit in Julia
 
 
-![Alt Sample mesh](https://www.dropbox.com/s/lwhbadvhymuhkng/ScreenHunter_31%20Feb.%2009%2020.54.jpg?dl=0 "JFinEALE.jl")
+![Alt Sample mesh](http://http://hogwarts.ucsd.edu/~pkrysl/site.images/ScreenHunter_31%20Feb.%2009%2020.54.jpg "JFinEALE.jl")
 
 This toolkit is a redesign of the Matlab toolkit
 
