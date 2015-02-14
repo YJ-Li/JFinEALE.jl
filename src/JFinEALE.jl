@@ -150,6 +150,7 @@ export H8extrudeQ4
 export H8spheren
 export H20block
 export H8toH20
+export H8voximg
 
 include("MeshTetrahedronModule.jl")
 using JFinEALE.MeshTetrahedronModule

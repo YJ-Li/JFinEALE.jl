@@ -503,28 +503,28 @@ function H8spheren(radius::JFFlt,nperradius::JFInt)
     h= 0.5;
     o= 1.0;
     xyz= [z  z  z;
-        h  z  z;
-        c  c  z;
-        z  h  z;
-        z  z  h;
-        c  z  c;
-        d  d  d;
-        z  c  c;
-        z  z  o;
-        a  z  a;
-        o  z  z;
-        a  a  z;
-        z  o  z;
-        z  a  a;
-        b  b  b]*radius;
+          h  z  z;
+          c  c  z;
+          z  h  z;
+          z  z  h;
+          c  z  c;
+          d  d  d;
+          z  c  c;
+          z  z  o;
+          a  z  a;
+          o  z  z;
+          a  a  z;
+          z  o  z;
+          z  a  a;
+          b  b  b]*radius;
     conns=[1  2  3  4  5  6  7  8;
-        2  11  12  3  6  10  15  7;
-        4  3  12  13  8  7  15  14;
+           2  11  12  3  6  10  15  7;
+           4  3  12  13  8  7  15  14;
            5  6  7  8  9  10  15  14];
     tolerance=radius*1.0e-6;
     
-  # fens = FENodeSetModule.FENodeSet(xyz= xyz);
-  #   fes = FESetModule.FESetH8(conn=conns);
+    # fens = FENodeSetModule.FENodeSet(xyz= xyz);
+    #   fes = FESetModule.FESetH8(conn=conns);
     fens,fes = H8hexahedron(xyz[conns[1,:][:],:],nL,nW,nH);
     fens1,fes1 = H8hexahedron(xyz[conns[2,:][:],:],nL,nW,nH);
     fens,fes1,fes2 = mergemeshes(fens1, fes1, fens, fes, tolerance);
@@ -533,7 +533,7 @@ function H8spheren(radius::JFFlt,nperradius::JFInt)
     fens,fes1,fes2 = mergemeshes(fens1, fes1, fens, fes, tolerance);
     fes=cat(fes1,fes2);
     fens1,fes1 = H8hexahedron(xyz[conns[4,:][:],:],nL,nW,nH);
-   fens,fes1,fes2 = mergemeshes(fens1, fes1, fens, fes, tolerance);
+    fens,fes1,fes2 = mergemeshes(fens1, fes1, fens, fes, tolerance);
     fes=cat(fes1,fes2);
     
     xyz=deepcopy(fens.xyz);
@@ -572,41 +572,41 @@ end
 export H8spheren
 
 function H20block(Length::JFFlt,Width::JFFlt,Height::JFFlt,nL::JFInt,nW::JFInt,nH::JFInt)
-# Mesh of a 3-D block of H20 finite elements
-#
-# Arguments:
-# Length,Width,Height= dimensions of the mesh in Cartesian coordinate axes,
-# smallest coordinate in all three directions is  0 (origin)
-# nL,nW,nH=number of elements in the three directions
-#
-# Range in xyz =<0,Length> x <0,Width> x <0,Height>
-# Divided into elements: nL, nW, nH in the first, second, and
-# third direction (x,y,z). Finite elements of type H20.
-#
-# Output:
-# fens= finite element node set
-# fes = finite element set
-#
-#
-# Examples: 
-#     [fens,fes] = H20_block(2,3,4, 1,2,3);
-#     drawmesh({fens,fes},'nodes','fes','facecolor','none'); hold on
-#
-# See also: H8_block, H8_to_H20
-#
+    # Mesh of a 3-D block of H20 finite elements
+    #
+    # Arguments:
+    # Length,Width,Height= dimensions of the mesh in Cartesian coordinate axes,
+    # smallest coordinate in all three directions is  0 (origin)
+    # nL,nW,nH=number of elements in the three directions
+    #
+    # Range in xyz =<0,Length> x <0,Width> x <0,Height>
+    # Divided into elements: nL, nW, nH in the first, second, and
+    # third direction (x,y,z). Finite elements of type H20.
+    #
+    # Output:
+    # fens= finite element node set
+    # fes = finite element set
+    #
+    #
+    # Examples: 
+    #     [fens,fes] = H20_block(2,3,4, 1,2,3);
+    #     drawmesh({fens,fes},'nodes','fes','facecolor','none'); hold on
+    #
+    # See also: H8_block, H8_to_H20
+    #
     fens,fes = H8block(Length,Width,Height,nL,nW,nH);
     fens,fes = H8toH20(fens,fes);
 end
 export H20block
 
 function   H8toH20(fens::FENodeSetModule.FENodeSet, fes::FESetModule.FESetH8)
-# % Convert a mesh of hexahedra H8 to hexahedra H20.
-# %
-# % Arguments and
-# % Output:
-# % fens= finite element node set
-# % fes = finite element set
-# %
+    # % Convert a mesh of hexahedra H8 to hexahedra H20.
+    # %
+    # % Arguments and
+    # % Output:
+    # % fens= finite element node set
+    # % fes = finite element set
+    # %
     nedges=12;
     ec = [1   2; 2   3; 3   4; 4   1; 5   6; 6   7; 7   8; 8   5; 1   5; 2   6; 3   7; 4   8;];
     conns = fes.conn;
@@ -621,8 +621,8 @@ function   H8toH20(fens::FENodeSetModule.FENodeSet, fes::FESetModule.FESetH8)
             newn = MeshUtilModule.addhyperface!(edges, ev, newn);
         end
     end
-     xyz1 =fens.xyz;             # Pre-existing nodes
-   # Allocate for vertex nodes plus edge nodes plus face nodes
+    xyz1 =fens.xyz;             # Pre-existing nodes
+    # Allocate for vertex nodes plus edge nodes plus face nodes
     xyz =zeros(JFFlt,newn-1,3);
     xyz[1:size(xyz1,1),:] = xyz1; # existing nodes are copied over
     # calculate the locations of the new nodes
@@ -633,7 +633,7 @@ function   H8toH20(fens::FENodeSetModule.FENodeSet, fes::FESetModule.FESetH8)
             xyz[C[J].n,:]=mean(xyz[[i,C[J].o],:],1);
         end
     end
-   # construct new geometry cells
+    # construct new geometry cells
     nconns =zeros(JFInt,size(conns,1),20);
     nc=1;
     for i= 1:size(conns,1)
@@ -653,5 +653,98 @@ function   H8toH20(fens::FENodeSetModule.FENodeSet, fes::FESetModule.FESetH8)
 end
 export H8toH20
 
+# Construct arrays to describe a hexahedron mesh created from voxel image.
+#
+# img = 3-D image (array), the voxel values  are arbitrary
+# voxval =range of voxel values to be included in the mesh,
+# voxval =  [minimum value, maximum value].  Minimum value == maximum value is
+# allowed.
+# Output:
+# t = array of hexahedron connectivities, one hexahedron per row
+# v =Array of vertex locations, one vertex per row
+function H8voximggen{DataT<:Number}(img::Array{DataT,3},voxval::Array{DataT,1})
+   M=size(img, 1); N=size(img, 2); P=size(img, 3);
+   
+     function find_nonempty(minvoxval,maxvoxval)
+        Nvoxval=0
+        for I= 1:M
+            for J= 1:N
+                for K= 1:P
+                    if (img[I,J,K]>=minvoxval) && (img[I,J,K]<=maxvoxval)
+                        Nvoxval=Nvoxval+1
+                    end
+                end
+            end
+        end
+        return Nvoxval
+    end
+    minvoxval= minimum(voxval)  # include voxels at or above this number
+    maxvoxval= maximum(voxval)  # include voxels at or below this number
+    Nvoxval =find_nonempty(minvoxval,maxvoxval) # how many "full" voxels are there?
+    
+    # Allocate output arrays
+    h =zeros(JFInt,Nvoxval,8);
+    v =zeros(JFInt,(M+1)*(N+1)*(P+1),3);
+    hmid =zeros(JFInt,Nvoxval);
+    
+    Slice =zeros(JFInt,2,N+1,P+1); # auxiliary buffer
+    function find_vertex (I,IJK)
+        vidx = zeros(JFInt,1,size(IJK,1));
+        for r= 1:size(IJK,1)
+            if (Slice[IJK[r,1],IJK[r,2],IJK[r,3]]==0)
+                nv=nv+1;
+                v[nv,:] =IJK[r,:]; v[nv,1] += I-1;
+                Slice[IJK[r,1],IJK[r,2],IJK[r,3]] =nv;
+            end
+            vidx[r] =Slice[IJK[r,1],IJK[r,2],IJK[r,3]];
+        end
+        return vidx
+    end
+    function store_hex (I,J,K)
+        locs =[1 J K;1+1 J K;1+1 J+1 K;1 J+1 K;1 J K+1;1+1 J K+1;1+1 J+1 K+1;1 J+1 K+1];
+        vidx = find_vertex (I,locs);
+        nh =nh +1;
+        h[nh,:] =vidx;
+        hmid[nh] =img[I,J,K];
+    end
+    
+    nv =0;                      # number of vertices
+    nh =0;                      # number of elements
+    for I= 1:M
+        for J= 1:N
+            for K= 1:P
+                if  (img[I,J,K]>=minvoxval) && (img[I,J,K]<=maxvoxval)
+                    store_hex (I,J,K);
+                end
+            end
+        end
+        Slice[1,:,:] =Slice[2,:,:] ;
+        Slice[2,:,:] =0;
+    end
+    # Trim output arrays
+    v=v[1:nv,:];
+    h=h[1:nh,:] ;
+    hmid=hmid[1:nh] ;
+
+    return h,v,hmid
+end
+
+
+function H8voximg{DataT<:Number}(img::Array{DataT,3},voxdims::JFFltVec,
+                                 voxval::Array{DataT,1})
+    h,v,hmid= H8voximggen(img,voxval)
+    xyz=zeros(JFFlt,size(v,1),3)
+    for j=1:size(v,1)
+        for k=1:3
+            xyz[j,k]=v[j,k]*voxdims[k]
+        end
+    end    
+    fens =FENodeSetModule.FENodeSet(xyz);
+    fes = FESetModule.FESetH8(conn=h) ;
+    setlabel!(fes,hmid)
+    return fens,fes;
+end
+export H8voximg
+    
 end
 
