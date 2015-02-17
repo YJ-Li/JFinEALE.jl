@@ -105,6 +105,7 @@ export mergemeshes
 export mergenmeshes!
 export mergenodes
 export renumberfeconn
+export meshsmoothing
 
 include("MeshTransformModule.jl")
 using JFinEALE.MeshTransformModule

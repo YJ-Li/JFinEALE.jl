@@ -449,6 +449,143 @@ function renumberfeconn(fes::FESetModule.FESet, new_numbering::JFIntVec)
 end
 export renumberfeconn
 
+function vsmoothing(v::JFFltMat,t::JFIntMat;options...)
+# General smoothing of meshes.
+#
+# function [t,v] =smoothing(t,v,options)
+#
+# Fields of the structure options, all are optional:
+# method='laplace' or 'taubin' (Default is 'taubin'.)
+# f=boundary faces (optional)
+# bv=boundary vertices (optional)
+# bv_from_f=compute boundary of vertices from the boundary faces, true or
+# false.  Tetrahedra and hexahedra are supported.
+    # npass=how many passes of smoothing? default is 2.
+
+    
+    iv=deepcopy(v);
+   
+    fixedv=falses(size(v,1))
+    npass =2;
+    method =:taubin;
+    for arg in options
+        sy, val = arg
+        if sy==:method
+            method=val
+        elseif sy==:fixedv
+            fixedv=val
+        elseif sy==:npass
+            npass=val
+        end
+    end
+
+    # find neighbors for the given connections
+    vneigh =  vertex_neighbors(t,size(v,1));
+    # Smoothing considering all connections through the volume
+    if (method==:taubin)
+        v =  taubin_smoother(v,vneigh,fixedv,npass,0.5,-0.5);
+    elseif (method==:laplace)
+        v =  laplace_smoother(v,vneigh,fixedv,npass,0.5,-0.5);
+    end 
+    # return new vertex locations
+    return v
+end
+export vsmoothing
+
+
+function meshsmoothing{T<:FESet}(fens::FENodeSet,fes::T;options...)
+# General smoothing of meshes.
+#
+# function [t,v] =smoothing(t,v,options)
+#
+# Fields of the structure options, all are optional:
+# method='laplace' or 'taubin' (Default is 'taubin'.)
+# f=boundary faces (optional)
+# bv=boundary vertices (optional)
+# bv_from_f=compute boundary of vertices from the boundary faces, true or
+# false.  Tetrahedra and hexahedra are supported.
+    # npass=how many passes of smoothing? default is 2.
+    nfens=deepcopy(fens)
+    v=vsmoothing(nfens.xyz,fes.conn;options...)
+    nfens.xyz= deepcopy(v)
+    return nfens,fes
+end
+export meshsmoothing
+
+function  taubin_smoother(vinp::JFFltMat,vneigh::Array{Array{Int,1},1},fixedv::BitArray{1},npass::JFInt,lambda::JFFlt,mu::JFFlt)
+    v=deepcopy(vinp);
+    nv=deepcopy(v);
+    for I= 1:npass
+        o=randperm(length(vneigh));
+        damping_factor=lambda;
+        for k= 1:length(vneigh)
+            r=o[k];
+            n=vneigh[r];
+            if (length(n)>1) && (!fixedv[r])
+                nv[r,:]=(1-damping_factor)*v[r,:]+ damping_factor*(sum(v[n,:],1)-v[r,:])/(length(n)-1);
+            end
+        end
+        v=deepcopy(nv);
+        damping_factor=mu;
+        for k= 1:length(vneigh)
+            r=o[k];
+            n=vneigh[r];
+            if (length(n)>1) && (!fixedv[r])
+                nv[r,:]=(1-damping_factor)*v[r,:]+ damping_factor*(sum(v[n,:],1)-v[r,:])/(length(n)-1);
+            end
+        end
+        v=nv;
+        nv=deepcopy(v);
+    end
+    return nv
+end
+
+function   laplace_smoother(vinp::JFFltMat,vneigh::Array{Array{Int,1},1},fixedv::BitArray{1},npass::JFInt,lambda::JFFlt,mu::JFFlt)
+    v=deepcopy(vinp);
+    nv=deepcopy(v);
+    damping_factor=lambda;
+    for I= 1:npass
+        o=randperm(length(vneigh));
+        for k= 1:length(vneigh)
+            r=o[k];
+            n=vneigh[r];
+            if (length(n)>1) && (!fixedv[r])
+                nv[r,:]=(1-damping_factor)*v[r,:]+ damping_factor*(sum(v[n,:],1)-v[r,:])/(length(n)-1);
+            end
+        end
+    end
+    return nv
+end
+
+function vertex_neighbors(conn::JFIntMat,nvertices::JFInt)
+# % Find the node neighbors in the mesh.
+# %
+# % function vn =  vertex_neighbors(vn,f,v)
+# %
+# % vn= cell array, element I holds an array of numbers of nodes  
+# %     which are connected to node I (including node I).  When this array is 
+# %     supplied as input the information from the current call is added to 
+# %     the array vn; otherwise (when vn is empty on input) the array is created 
+# %     and returned.
+# % f= connectivity of the mesh, one row per element
+# % v= locations of the nodes, three columns, one row per node
+    vn=Array(JFIntVec,nvertices)
+    for I= 1:length(vn)
+        vn[I]=JFInt[];          # preallocate
+    end
+    for I= 1:size(conn,1)
+        for r= 1:size(conn,2)
+            append!(vn[conn[I,r]],vec(conn[I,:]));
+        end
+    end
+    for I= 1:length(vn)
+        vn[I]=unique(vn[I]);
+    end
+    return vn
+end
+
+
+
 end
 
 
