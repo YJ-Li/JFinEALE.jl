@@ -514,7 +514,7 @@ export meshsmoothing
 
 function  taubin_smoother(vinp::JFFltMat,vneigh::Array{Array{Int,1},1},fixedv::BitArray{1},npass::JFInt,lambda::JFFlt,mu::JFFlt)
     v=deepcopy(vinp);
-    nv=deepcopy(v);
+    nv=deepcopy(vinp);
     for I= 1:npass
         o=randperm(length(vneigh));
         damping_factor=lambda;
@@ -534,15 +534,14 @@ function  taubin_smoother(vinp::JFFltMat,vneigh::Array{Array{Int,1},1},fixedv::B
                 nv[r,:]=(1-damping_factor)*v[r,:]+ damping_factor*(sum(v[n,:],1)-v[r,:])/(length(n)-1);
             end
         end
-        v=nv;
-        nv=deepcopy(v);
+        v=deepcopy(nv);
     end
     return nv
 end
 
 function   laplace_smoother(vinp::JFFltMat,vneigh::Array{Array{Int,1},1},fixedv::BitArray{1},npass::JFInt,lambda::JFFlt,mu::JFFlt)
     v=deepcopy(vinp);
-    nv=deepcopy(v);
+    nv=deepcopy(vinp);
     damping_factor=lambda;
     for I= 1:npass
         o=randperm(length(vneigh));
@@ -553,6 +552,7 @@ function   laplace_smoother(vinp::JFFltMat,vneigh::Array{Array{Int,1},1},fixedv:
                 nv[r,:]=(1-damping_factor)*v[r,:]+ damping_factor*(sum(v[n,:],1)-v[r,:])/(length(n)-1);
             end
         end
+        v=deepcopy(nv);
     end
     return nv
 end
