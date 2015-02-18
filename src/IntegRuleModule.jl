@@ -155,8 +155,8 @@ end
 export TetRule
 
 function TetRule(;npts=1)
-    #    npts=number of points (1-- one-point rule, 3 -- three-point rule,
-    #      6 -- six point rule, 10 -- Strang 10 point, order 13, degree of precision 7, rule).
+    #    npts=number of points (1-- one-point rule, 4 -- four-point rule,
+    #      5 -- five point rule).
 
     if npts==1 # integrates exactly linear polynomials
         param_coords = reshape([0.25,0.25,0.25],1,3);
